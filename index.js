@@ -238,6 +238,10 @@ client.connect()
         }
     });
 
+// Register event handlers
+client.on('message', onMessageHandler);
+client.on('connected', onConnectedHandler);
+
 // Message deduplication cache with message IDs
 const messageCache = new Map();
 const MESSAGE_CACHE_TTL = 2000; // 2 seconds TTL
@@ -278,6 +282,8 @@ async function onMessageHandler(target, context, msg, self) {
 
     // Remove whitespace from chat message
     const commandText = msg.trim().toLowerCase();
+    
+    console.log(`[DEBUG] Received message: "${msg}" from ${context.username}`);
     
     // Check if the message is actually a command
     if (!commandText.startsWith('!')) {
@@ -329,5 +335,6 @@ async function onMessageHandler(target, context, msg, self) {
 // Called every time the bot connects to Twitch chat
 function onConnectedHandler(addr, port) {
     console.log(`* Connected to ${addr}:${port}`);
-    console.log('Available commands:', commandManager.listCommands());
+    const commands = commandManager.listCommands();
+    console.log('Available commands:', commands.map(cmd => ({ name: cmd.name, trigger: cmd.trigger, enabled: cmd.enabled })));
 } 
