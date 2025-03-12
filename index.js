@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const commandManager = require('./commandManager');
 const logger = require('./logger');
+const { spawn } = require('child_process');
 
 // Create WebSocket server
 const wss = new WebSocket.Server({ port: process.env.PORT || 8080 });
@@ -499,36 +500,117 @@ async function handleExit() {
 }
 
 async function handleRestart() {
-    console.log('Restarting bot...');
+    console.log('Received restart signal. Restarting bot...');
     
-    // Notify all clients
+    // Notify all connected clients
     broadcastToAll({
         type: 'CONNECTION_STATE',
         state: 'restarting'
     });
     
-    // Disconnect from Twitch
-    if (client) {
-        await client.disconnect();
-        console.log('Disconnected from Twitch');
+    try {
+        // Disconnect from Twitch
+        if (client) {
+            console.log('Disconnecting from Twitch...');
+            await client.disconnect();
+            console.log('Disconnected from Twitch');
+        }
+        
+        // Close WebSocket server
+        if (wss) {
+            console.log('Closing WebSocket server...');
+            wss.close();
+            console.log('WebSocket server closed');
+        }
+        
+        // Remove lock file
+        if (fs.existsSync(lockFile)) {
+            console.log('Removing lock file...');
+            fs.unlinkSync(lockFile);
+            console.log('Lock file removed');
+        }
+        
+        console.log('Spawning new process...');
+        
+        // Get the current script path
+        const scriptPath = path.resolve(__dirname, 'index.js');
+        
+        // Spawn a new process with the same arguments
+        const child = spawn('node', [scriptPath], {
+            detached: true,
+            stdio: 'inherit',
+            env: process.env
+        });
+        
+        // Unref the child to allow the parent to exit
+        child.unref();
+        
+        console.log('New process spawned. Exiting...');
+        
+        // Exit after a short delay to allow messages to be sent
+        setTimeout(() => {
+            process.exit(0);
+        }, 1000);
+    } catch (error) {
+        console.error('Error during restart:', error);
+        process.exit(1);
     }
+}
+
+process.on('RESTART_BOT', async () => {
+    console.log('Received restart signal. Restarting bot...');
     
-    // Spawn a new process
-    const { spawn } = require('child_process');
-    const path = require('path');
-    
-    // Get the current script path
-    const scriptPath = path.resolve(__dirname, 'index.js');
-    
-    // Spawn a new process with the same arguments
-    const child = spawn('node', [scriptPath], {
-        detached: true,
-        stdio: 'inherit'
+    // Notify all connected clients
+    broadcastToAll({
+        type: 'CONNECTION_STATE',
+        state: 'restarting'
     });
     
-    // Unref the child to allow the parent to exit
-    child.unref();
-    
-    // Exit the current process
-    process.exit(0);
-} 
+    try {
+        // Disconnect from Twitch
+        if (client) {
+            console.log('Disconnecting from Twitch...');
+            await client.disconnect();
+            console.log('Disconnected from Twitch');
+        }
+        
+        // Close WebSocket server
+        if (wss) {
+            console.log('Closing WebSocket server...');
+            wss.close();
+            console.log('WebSocket server closed');
+        }
+        
+        // Remove lock file
+        if (fs.existsSync(lockFile)) {
+            console.log('Removing lock file...');
+            fs.unlinkSync(lockFile);
+            console.log('Lock file removed');
+        }
+        
+        console.log('Spawning new process...');
+        
+        // Get the current script path
+        const scriptPath = path.resolve(__dirname, 'index.js');
+        
+        // Spawn a new process with the same arguments
+        const child = spawn('node', [scriptPath], {
+            detached: true,
+            stdio: 'inherit',
+            env: process.env
+        });
+        
+        // Unref the child to allow the parent to exit
+        child.unref();
+        
+        console.log('New process spawned. Exiting...');
+        
+        // Exit after a short delay to allow messages to be sent
+        setTimeout(() => {
+            process.exit(0);
+        }, 1000);
+    } catch (error) {
+        console.error('Error during restart:', error);
+        process.exit(1);
+    }
+}); 
