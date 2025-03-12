@@ -23,12 +23,20 @@ class CommandManager {
             trigger: '!help',
             modOnly: false,
             execute: async (client, target, context) => {
+                console.log('[DEBUG] Help command executing...');
                 const commands = this.listCommands()
                     .filter(cmd => cmd.enabled)
                     .map(cmd => cmd.trigger)
                     .join(', ');
-                await client.say(target, `Available commands: ${commands}`);
-                return true;
+                console.log('[DEBUG] Available commands to show:', commands);
+                try {
+                    await client.say(target, `Available commands: ${commands}`);
+                    console.log('[DEBUG] Help message sent successfully');
+                    return true;
+                } catch (error) {
+                    console.error('[ERROR] Failed to send help message:', error);
+                    return false;
+                }
             }
         });
 
