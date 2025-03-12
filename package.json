@@ -1,21 +1,38 @@
 {
-  "name": "maxbot",
-  "version": "1.0.0",
-  "description": "MaxBot - A customizable Twitch chat bot",
-  "scripts": {
-    "start": "concurrently \"cd bot-server && npm start\" \"cd bot-client && npm start\"",
-    "dev": "concurrently \"cd bot-server && npm run dev\" \"cd bot-client && npm run dev\"",
-    "install-all": "npm install && cd bot-server && npm install && cd ../bot-client && npm install",
-    "auth": "node auth-server.js"
-  },
-  "dependencies": {
-    "axios": "^1.6.7",
-    "dotenv": "^16.4.5",
-    "express": "^4.18.3",
-    "express-rate-limit": "^7.1.5",
-    "express-session": "^1.18.0"
-  },
-  "devDependencies": {
-    "concurrently": "^7.6.0"
-  }
+    "name": "maxbot",
+    "version": "1.0.0",
+    "description": "MaxBot - A Twitch Chat Bot with WebSocket API",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js",
+        "test": "jest",
+        "auth": "node auth-server.js"
+    },
+    "dependencies": {
+        "axios": "^1.6.7",
+        "dotenv": "^16.4.5",
+        "express": "^4.18.3",
+        "express-rate-limit": "^7.1.5",
+        "express-session": "^1.18.0",
+        "tmi.js": "^1.8.5",
+        "ws": "^8.13.0"
+    },
+    "devDependencies": {
+        "jest": "^29.5.0",
+        "nodemon": "^2.0.22"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/maxthrillerlive/MaxBot.git"
+    },
+    "keywords": [
+        "twitch",
+        "bot",
+        "chat",
+        "server",
+        "websocket"
+    ],
+    "author": "maxthrillerlive",
+    "license": "MIT"
 } 

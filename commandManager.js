@@ -1,18 +1,50 @@
 const fs = require('fs');
 const path = require('path');
 
-let instance = null;
-
 class CommandManager {
     constructor() {
-        if (instance) {
-            return instance;
-        }
         this.commands = new Map();
-        this.stateFile = path.join(__dirname, 'commandStates.json');
+        this.stateFile = path.join(__dirname, 'commands.json');
         this.loadCommands();
         this.loadState();
-        instance = this;
+    }
+
+    loadCommands() {
+        const commandsDir = path.join(__dirname, 'commands');
+        if (!fs.existsSync(commandsDir)) {
+            fs.mkdirSync(commandsDir);
+        }
+
+        // Load built-in commands
+        this.registerCommand({
+            name: 'help',
+            description: 'Show available commands',
+            enabled: true,
+            trigger: '!help',
+            modOnly: false,
+            execute: async (client, target, context) => {
+                const commands = this.listCommands()
+                    .filter(cmd => cmd.enabled)
+                    .map(cmd => cmd.trigger)
+                    .join(', ');
+                await client.say(target, `Available commands: ${commands}`);
+                return true;
+            }
+        });
+
+        // Load command files from the commands directory
+        if (fs.existsSync(commandsDir)) {
+            fs.readdirSync(commandsDir)
+                .filter(file => file.endsWith('.js'))
+                .forEach(file => {
+                    try {
+                        const command = require(path.join(commandsDir, file));
+                        this.registerCommand(command);
+                    } catch (error) {
+                        console.error(`Error loading command from ${file}:`, error);
+                    }
+                });
+        }
     }
 
     loadState() {
@@ -21,14 +53,11 @@ class CommandManager {
                 const states = JSON.parse(fs.readFileSync(this.stateFile, 'utf8'));
                 // Apply saved states to commands
                 for (const [name, enabled] of Object.entries(states)) {
-                    for (const command of this.commands.values()) {
-                        if (command.name === name) {
-                            command.enabled = enabled;
-                            break;
-                        }
+                    const command = this.commands.get(name);
+                    if (command) {
+                        command.enabled = enabled;
                     }
                 }
-                console.log('Loaded command states:', states);
             }
         } catch (error) {
             console.error('Error loading command states:', error);
@@ -38,112 +67,74 @@ class CommandManager {
     saveState() {
         try {
             const states = {};
-            for (const command of this.commands.values()) {
-                states[command.name] = command.enabled;
-            }
+            this.commands.forEach((command, name) => {
+                states[name] = command.enabled;
+            });
             fs.writeFileSync(this.stateFile, JSON.stringify(states, null, 2));
-            console.log('Saved command states:', states);
         } catch (error) {
             console.error('Error saving command states:', error);
         }
     }
 
-    loadCommands() {
-        const commandsPath = path.join(__dirname, 'commands');
-        
-        // Create commands directory if it doesn't exist
-        if (!fs.existsSync(commandsPath)) {
-            fs.mkdirSync(commandsPath);
+    registerCommand(command) {
+        if (!command.name || !command.trigger || typeof command.execute !== 'function') {
+            console.error('Invalid command format:', command);
+            return false;
         }
-
-        // Read all command files
-        const commandFiles = fs.readdirSync(commandsPath)
-            .filter(file => file.endsWith('.js'));
-
-        for (const file of commandFiles) {
-            try {
-                const command = require(path.join(commandsPath, file));
-                if (command.name && command.trigger && command.execute) {
-                    this.commands.set(command.trigger, command);
-                    console.log(`Loaded command: ${command.name}${command.modOnly ? ' (Mod Only)' : ''}`);
-                }
-            } catch (error) {
-                console.error(`Error loading command from ${file}:`, error);
-            }
-        }
+        this.commands.set(command.name, command);
+        return true;
     }
 
-    enableCommand(commandName) {
-        for (const [trigger, command] of this.commands) {
-            if (command.name === commandName) {
-                command.enabled = true;
-                console.log(`Enabled command: ${commandName}`);
-                this.saveState();
-                return true;
-            }
+    enableCommand(name) {
+        const command = this.commands.get(name);
+        if (command) {
+            command.enabled = true;
+            this.saveState();
+            return true;
         }
         return false;
     }
 
-    disableCommand(commandName) {
-        for (const [trigger, command] of this.commands) {
-            if (command.name === commandName) {
-                command.enabled = false;
-                console.log(`Disabled command: ${commandName}`);
-                this.saveState();
-                return true;
-            }
+    disableCommand(name) {
+        const command = this.commands.get(name);
+        if (command) {
+            command.enabled = false;
+            this.saveState();
+            return true;
         }
         return false;
     }
 
-    async handleCommand(client, target, context, commandText) {
-        const command = this.commands.get(commandText);
+    listCommands() {
+        return Array.from(this.commands.values());
+    }
+
+    getCommand(name) {
+        return this.commands.get(name);
+    }
+
+    handleCommand(client, target, context, msg) {
+        const commandName = msg.trim().toLowerCase().split(' ')[0].substring(1);
+        const command = this.getCommand(commandName);
         
-        if (!command) {
+        if (!command || !command.enabled) {
             return false;
         }
 
-        if (!command.enabled) {
-            console.log(`Command "${command.name}" is disabled`);
-            return false;
-        }
-
-        // Check for mod-only commands with consistent permission checking
         if (command.modOnly) {
             const isBroadcaster = context.username.toLowerCase() === process.env.CHANNEL_NAME.toLowerCase();
             const isMod = context.mod || isBroadcaster || context.badges?.broadcaster === '1';
-            
             if (!isMod) {
-                await client.say(target, `@${context.username} Sorry, this command is for moderators only.`);
                 return false;
             }
         }
 
         try {
-            // Execute command in a controlled context
-            const executionPromise = command.execute(client, target, context, this);
-            const result = await Promise.race([
-                executionPromise,
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Command execution timeout')), 5000)
-                )
-            ]);
-            return result === true;
+            return command.execute(client, target, context, msg);
         } catch (error) {
-            console.error(`Error executing command ${command.name}:`, error);
+            console.error(`Error executing command ${commandName}:`, error);
             return false;
         }
-    }
-
-    listCommands() {
-        return Array.from(this.commands.values()).map(cmd => ({
-            name: cmd.name,
-            description: cmd.description,
-            enabled: cmd.enabled,
-            trigger: cmd.trigger,
-            modOnly: cmd.modOnly || false
-        }));
     }
 }
 
