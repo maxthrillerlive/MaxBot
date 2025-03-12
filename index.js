@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const commandManager = require('./commandManager');
+const logger = require('./logger');
 
 // Create WebSocket server
 const wss = new WebSocket.Server({ port: process.env.PORT || 8080 });
@@ -118,7 +119,7 @@ const client = new tmi.client(opts);
 
 // Initialize WebSocket server
 wss.on('connection', (ws) => {
-    console.log('Control panel connected');
+    logger.info('Control panel connected');
     
     // Send initial status
     sendStatus(ws);
@@ -138,8 +139,12 @@ wss.on('connection', (ws) => {
             handleWebSocketMessage(ws, data);
         } catch (err) {
             console.error('Error:', err);
-            sendError(ws, err.message);
+            ws.send(JSON.stringify({ type: 'ERROR', error: err.message }));
         }
+    });
+
+    ws.on('error', (error) => {
+        console.error('WebSocket connection error:', error);
     });
 
     ws.on('close', () => {
@@ -149,6 +154,11 @@ wss.on('connection', (ws) => {
 
     // Send welcome message with available commands
     sendCommandList(ws);
+});
+
+// Add error handling for WebSocket server
+wss.on('error', (error) => {
+    console.error('WebSocket server error:', error);
 });
 
 // WebSocket heartbeat
@@ -255,17 +265,23 @@ async function handleWebSocketMessage(ws, data) {
                 await handleExit();
                 break;
             default:
-                sendError(ws, `Unknown message type: ${data.type}`);
+                ws.send(JSON.stringify({ 
+                    type: 'ERROR', 
+                    error: `Unknown message type: ${data.type}` 
+                }));
         }
     } catch (error) {
         console.error('Error handling WebSocket message:', error);
-        sendError(ws, error.message);
+        ws.send(JSON.stringify({ type: 'ERROR', error: error.message }));
     }
 }
 
 // Add chat message broadcasting
 client.on('message', (channel, tags, message, self) => {
     if (self) return;
+
+    // Log chat message
+    logger.chat(tags.username, message, channel);
 
     broadcastToAll({
         type: 'CHAT_MESSAGE',
@@ -295,7 +311,8 @@ client.on('connected', () => {
     });
 });
 
-client.on('disconnected', () => {
+client.on('disconnected', (reason) => {
+    logger.error(`Disconnected: ${reason}`);
     broadcastToAll({
         type: 'CONNECTION_STATE',
         state: 'disconnected'
@@ -440,7 +457,78 @@ async function onMessageHandler(target, context, msg, self) {
 
 // Called every time the bot connects to Twitch chat
 function onConnectedHandler(addr, port) {
-    console.log(`* Connected to ${addr}:${port}`);
+    logger.info(`Connected to ${addr}:${port}`);
     const commands = commandManager.listCommands();
     console.log('Available commands:', commands.map(cmd => ({ name: cmd.name, trigger: cmd.trigger, enabled: cmd.enabled })));
+}
+
+async function handleExit() {
+    console.log('Exiting bot...');
+    
+    // Clean up resources
+    if (wss) {
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.close();
+            }
+        });
+        
+        wss.close(() => {
+            console.log('WebSocket server closed');
+        });
+    }
+    
+    // Disconnect from Twitch
+    if (client) {
+        await client.disconnect();
+        console.log('Disconnected from Twitch');
+    }
+    
+    // Remove lock file
+    try {
+        if (fs.existsSync(lockFile)) {
+            fs.unlinkSync(lockFile);
+            console.log('Lock file removed');
+        }
+    } catch (err) {
+        console.error('Error removing lock file:', err);
+    }
+    
+    // Exit process
+    process.exit(0);
+}
+
+async function handleRestart() {
+    console.log('Restarting bot...');
+    
+    // Notify all clients
+    broadcastToAll({
+        type: 'CONNECTION_STATE',
+        state: 'restarting'
+    });
+    
+    // Disconnect from Twitch
+    if (client) {
+        await client.disconnect();
+        console.log('Disconnected from Twitch');
+    }
+    
+    // Spawn a new process
+    const { spawn } = require('child_process');
+    const path = require('path');
+    
+    // Get the current script path
+    const scriptPath = path.resolve(__dirname, 'index.js');
+    
+    // Spawn a new process with the same arguments
+    const child = spawn('node', [scriptPath], {
+        detached: true,
+        stdio: 'inherit'
+    });
+    
+    // Unref the child to allow the parent to exit
+    child.unref();
+    
+    // Exit the current process
+    process.exit(0);
 } 
