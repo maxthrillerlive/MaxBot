@@ -91,7 +91,7 @@ if (!process.env.CHANNEL_NAME) {
 // Define configuration options
 const opts = {
     options: { 
-        debug: false,
+        debug: true,
         messagesLogLevel: "info",
         skipMembership: true,  // Skip membership events
         skipUpdatingEmotesets: true  // Skip updating emote sets
@@ -123,20 +123,65 @@ wss.on('connection', (ws) => {
     // Send initial status
     sendStatus(ws);
 
+    // Track this connection
+    ws.isAlive = true;
+    ws.lastPing = Date.now();
+
+    ws.on('pong', () => {
+        ws.isAlive = true;
+        ws.lastPing = Date.now();
+    });
+
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
             handleWebSocketMessage(ws, data);
         } catch (err) {
             console.error('Error:', err);
-            ws.send(JSON.stringify({ type: 'ERROR', error: err.message }));
+            sendError(ws, err.message);
         }
     });
 
     ws.on('close', () => {
         console.log('Control panel disconnected');
+        ws.isAlive = false;
     });
+
+    // Send welcome message with available commands
+    sendCommandList(ws);
 });
+
+// WebSocket heartbeat
+const pingInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+        if (!ws.isAlive) {
+            console.log('Terminating stale connection');
+            return ws.terminate();
+        }
+        
+        ws.isAlive = false;
+        ws.ping();
+    });
+}, 30000);
+
+// Clean up interval on server close
+wss.on('close', () => {
+    clearInterval(pingInterval);
+});
+
+function sendError(ws, message) {
+    ws.send(JSON.stringify({
+        type: 'ERROR',
+        error: message
+    }));
+}
+
+function sendCommandList(ws) {
+    ws.send(JSON.stringify({
+        type: 'COMMANDS',
+        data: commandManager.listCommands()
+    }));
+}
 
 function sendStatus(ws) {
     const status = {
@@ -145,7 +190,10 @@ function sendStatus(ws) {
             connectionState: client.readyState(),
             username: process.env.BOT_USERNAME,
             processId: process.pid,
-            channels: client.getChannels()
+            channels: client.getChannels(),
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            commandCount: commandManager.listCommands().length
         }
     };
     ws.send(JSON.stringify(status));
@@ -161,40 +209,98 @@ function broadcastToAll(data) {
 }
 
 async function handleWebSocketMessage(ws, data) {
-    switch (data.type) {
-        case 'GET_STATUS':
-            sendStatus(ws);
-            break;
-        case 'GET_COMMANDS':
-            ws.send(JSON.stringify({
-                type: 'COMMANDS',
-                data: commandManager.listCommands()
-            }));
-            break;
-        case 'ENABLE_COMMAND':
-            if (commandManager.enableCommand(data.command)) {
-                broadcastToAll({
-                    type: 'COMMAND_ENABLED',
-                    command: data.command
-                });
-            }
-            break;
-        case 'DISABLE_COMMAND':
-            if (commandManager.disableCommand(data.command)) {
-                broadcastToAll({
-                    type: 'COMMAND_DISABLED',
-                    command: data.command
-                });
-            }
-            break;
-        case 'RESTART_BOT':
-            await handleRestart();
-            break;
-        case 'EXIT_BOT':
-            await handleExit();
-            break;
+    try {
+        switch (data.type) {
+            case 'GET_STATUS':
+                sendStatus(ws);
+                break;
+            case 'GET_COMMANDS':
+                sendCommandList(ws);
+                break;
+            case 'ENABLE_COMMAND':
+                if (commandManager.enableCommand(data.command)) {
+                    broadcastToAll({
+                        type: 'COMMAND_ENABLED',
+                        command: data.command
+                    });
+                }
+                break;
+            case 'DISABLE_COMMAND':
+                if (commandManager.disableCommand(data.command)) {
+                    broadcastToAll({
+                        type: 'COMMAND_DISABLED',
+                        command: data.command
+                    });
+                }
+                break;
+            case 'EXECUTE_COMMAND':
+                if (data.command && data.channel) {
+                    const result = await commandManager.handleCommand(
+                        client,
+                        data.channel,
+                        { username: process.env.BOT_USERNAME },
+                        data.command
+                    );
+                    ws.send(JSON.stringify({
+                        type: 'COMMAND_RESULT',
+                        success: result,
+                        command: data.command
+                    }));
+                }
+                break;
+            case 'RESTART_BOT':
+                await handleRestart();
+                break;
+            case 'EXIT_BOT':
+                await handleExit();
+                break;
+            default:
+                sendError(ws, `Unknown message type: ${data.type}`);
+        }
+    } catch (error) {
+        console.error('Error handling WebSocket message:', error);
+        sendError(ws, error.message);
     }
 }
+
+// Add chat message broadcasting
+client.on('message', (channel, tags, message, self) => {
+    if (self) return;
+
+    broadcastToAll({
+        type: 'CHAT_MESSAGE',
+        data: {
+            channel,
+            username: tags.username,
+            message,
+            badges: tags.badges,
+            timestamp: Date.now(),
+            id: tags.id
+        }
+    });
+});
+
+// Broadcast connection state changes
+client.on('connecting', () => {
+    broadcastToAll({
+        type: 'CONNECTION_STATE',
+        state: 'connecting'
+    });
+});
+
+client.on('connected', () => {
+    broadcastToAll({
+        type: 'CONNECTION_STATE',
+        state: 'connected'
+    });
+});
+
+client.on('disconnected', () => {
+    broadcastToAll({
+        type: 'CONNECTION_STATE',
+        state: 'disconnected'
+    });
+});
 
 // Graceful shutdown handling
 let isShuttingDown = false;  // Add flag to prevent multiple shutdown attempts
