@@ -122,8 +122,12 @@ class CommandManager {
     }
 
     handleCommand(client, target, context, msg) {
-        const commandName = msg.trim().toLowerCase().split(' ')[0].substring(1);
-        const command = this.getCommand(commandName);
+        const commandTrigger = msg.trim().toLowerCase().split(' ')[0];
+        
+        // Find command by trigger instead of name
+        const command = Array.from(this.commands.values()).find(cmd => 
+            cmd.trigger.toLowerCase() === commandTrigger
+        );
         
         if (!command || !command.enabled) {
             return false;
@@ -140,7 +144,7 @@ class CommandManager {
         try {
             return command.execute(client, target, context, msg);
         } catch (error) {
-            console.error(`Error executing command ${commandName}:`, error);
+            console.error(`Error executing command ${command.name}:`, error);
             return false;
         }
     }
