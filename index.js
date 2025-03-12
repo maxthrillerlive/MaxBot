@@ -1,9 +1,12 @@
 require('dotenv').config();
 const tmi = require('tmi.js');
+const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const commandManager = require('./commandManager');
-const BotUI = require('./ui');
+
+// Create WebSocket server
+const wss = new WebSocket.Server({ port: process.env.PORT || 8080 });
 
 // Move lock file to project root directory
 const lockFile = path.join(__dirname, '..', 'bot.lock');
@@ -113,36 +116,85 @@ const opts = {
 // Create a client with our options
 const client = new tmi.client(opts);
 
-// Initialize UI
-const ui = new BotUI(client);
+// Initialize WebSocket server
+wss.on('connection', (ws) => {
+    console.log('Control panel connected');
+    
+    // Send initial status
+    sendStatus(ws);
 
-// Clear any existing listeners before adding new ones
-client.removeAllListeners();
+    ws.on('message', async (message) => {
+        try {
+            const data = JSON.parse(message);
+            handleWebSocketMessage(ws, data);
+        } catch (err) {
+            console.error('Error:', err);
+            ws.send(JSON.stringify({ type: 'ERROR', error: err.message }));
+        }
+    });
 
-// Register our event handlers (only once)
-client.once('connected', onConnectedHandler);
+    ws.on('close', () => {
+        console.log('Control panel disconnected');
+    });
+});
 
-// Use a single message handler
-const messageHandler = onMessageHandler.bind(client);
-client.on('message', messageHandler);
-client.removeAllListeners('action');  // Remove action listener to prevent duplicate handling
+function sendStatus(ws) {
+    const status = {
+        type: 'STATUS',
+        data: {
+            connectionState: client.readyState(),
+            username: process.env.BOT_USERNAME,
+            processId: process.pid,
+            channels: client.getChannels()
+        }
+    };
+    ws.send(JSON.stringify(status));
+}
 
-// Only register essential event handlers
-client.on('disconnected', (reason) => {
-    console.error('Bot disconnected:', reason);
-    if (!isShuttingDown) {
-        console.log('Attempting to reconnect...');
+function broadcastToAll(data) {
+    const message = JSON.stringify(data);
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+}
+
+async function handleWebSocketMessage(ws, data) {
+    switch (data.type) {
+        case 'GET_STATUS':
+            sendStatus(ws);
+            break;
+        case 'GET_COMMANDS':
+            ws.send(JSON.stringify({
+                type: 'COMMANDS',
+                data: commandManager.listCommands()
+            }));
+            break;
+        case 'ENABLE_COMMAND':
+            if (commandManager.enableCommand(data.command)) {
+                broadcastToAll({
+                    type: 'COMMAND_ENABLED',
+                    command: data.command
+                });
+            }
+            break;
+        case 'DISABLE_COMMAND':
+            if (commandManager.disableCommand(data.command)) {
+                broadcastToAll({
+                    type: 'COMMAND_DISABLED',
+                    command: data.command
+                });
+            }
+            break;
+        case 'RESTART_BOT':
+            await handleRestart();
+            break;
+        case 'EXIT_BOT':
+            await handleExit();
+            break;
     }
-});
-
-// Handle connection errors
-client.on('connecting', (address, port) => {
-    console.log(`Attempting to connect to ${address}:${port}`);
-});
-
-client.on('error', (error) => {
-    console.error('Connection error:', error);
-});
+}
 
 // Graceful shutdown handling
 let isShuttingDown = false;  // Add flag to prevent multiple shutdown attempts
