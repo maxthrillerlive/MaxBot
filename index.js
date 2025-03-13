@@ -121,6 +121,26 @@ const opts = {
 // Create a client with our options
 const client = new tmi.client(opts);
 
+// Add this after creating the client but before using it
+const originalSay = client.say;
+client.say = async function(channel, message) {
+    // Call the original method
+    await originalSay.call(this, channel, message);
+    
+    // Broadcast the message to all connected clients
+    broadcastToAll({
+        type: 'CHAT_MESSAGE',
+        data: {
+            channel: channel,
+            username: process.env.BOT_USERNAME,
+            message: message,
+            badges: {},
+            timestamp: Date.now(),
+            id: 'bot-response-' + Date.now()
+        }
+    });
+};
+
 // WebSocket heartbeat implementation
 wss.on('connection', (ws) => {
     console.log('Control panel connected');
@@ -383,34 +403,65 @@ async function handleWebSocketMessage(ws, data) {
             case 'CHAT_COMMAND':
                 if (data.message && data.channel) {
                     try {
-                        // Send the message to the specified channel
-                        await client.say(data.channel, data.message);
-                        
-                        // Broadcast the message to all connected clients
-                        broadcastToAll({
-                            type: 'CHAT_MESSAGE',
-                            data: {
-                                channel: data.channel,
-                                username: process.env.BOT_USERNAME, // Use the bot's username
-                                message: data.message,
-                                badges: {}, // Bot doesn't have badges in this context
-                                timestamp: Date.now(),
-                                id: 'bot-message-' + Date.now() // Generate a unique ID
-                            }
-                        });
-                        
-                        // Send success response to the client that sent the command
-                        ws.send(JSON.stringify({
-                            type: 'COMMAND_RESULT',
-                            success: true,
-                            command: 'chat',
-                            message: data.message
-                        }));
+                        // Check if this is a command (starts with !) from the control panel
+                        if (data.message.startsWith('!')) {
+                            // This is a command, let the command manager handle it
+                            console.log(`Treating message as command: ${data.message}`);
+                            const result = await commandManager.handleCommand(
+                                client,
+                                data.channel,
+                                { username: process.env.BOT_USERNAME },
+                                data.message
+                            );
+                            
+                            // Broadcast the command execution as a chat message
+                            broadcastToAll({
+                                type: 'CHAT_MESSAGE',
+                                data: {
+                                    channel: data.channel,
+                                    username: process.env.BOT_USERNAME,
+                                    message: data.message,
+                                    badges: {},
+                                    timestamp: Date.now(),
+                                    id: 'bot-command-' + Date.now()
+                                }
+                            });
+                            
+                            ws.send(JSON.stringify({
+                                type: 'COMMAND_RESULT',
+                                success: result,
+                                command: data.message
+                            }));
+                        } else {
+                            // This is a regular chat message, just send it
+                            console.log(`Sending chat message: ${data.message}`);
+                            await client.say(data.channel, data.message);
+                            
+                            // Broadcast the message to all connected clients
+                            broadcastToAll({
+                                type: 'CHAT_MESSAGE',
+                                data: {
+                                    channel: data.channel,
+                                    username: process.env.BOT_USERNAME,
+                                    message: data.message,
+                                    badges: {},
+                                    timestamp: Date.now(),
+                                    id: 'bot-message-' + Date.now()
+                                }
+                            });
+                            
+                            ws.send(JSON.stringify({
+                                type: 'COMMAND_RESULT',
+                                success: true,
+                                command: 'chat',
+                                message: data.message
+                            }));
+                        }
                     } catch (error) {
-                        console.error('Error sending chat message:', error);
+                        console.error('Error handling chat message/command:', error);
                         ws.send(JSON.stringify({
                             type: 'ERROR',
-                            error: 'Failed to send chat message: ' + error.message
+                            error: 'Failed to process message: ' + error.message
                         }));
                     }
                 } else {
@@ -557,7 +608,22 @@ function addToMessageCache(context, commandText) {
 
 // Called every time a message comes in
 async function onMessageHandler(target, context, msg, self) {
-    if (self) { return; } // Ignore messages from the bot
+    // Even if it's from the bot, we want to capture it for the control panel
+    if (self) { 
+        // Broadcast the bot's own messages to all connected clients
+        broadcastToAll({
+            type: 'CHAT_MESSAGE',
+            data: {
+                channel: target,
+                username: process.env.BOT_USERNAME,
+                message: msg,
+                badges: context.badges || {},
+                timestamp: Date.now(),
+                id: context.id || 'bot-message-' + Date.now()
+            }
+        });
+        return; // Still return after broadcasting to avoid processing bot's messages as commands
+    }
 
     // Remove whitespace from chat message
     const commandText = msg.trim().toLowerCase();
