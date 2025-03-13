@@ -121,24 +121,37 @@ const opts = {
 // Create a client with our options
 const client = new tmi.client(opts);
 
-// Add this after creating the client but before using it
+// After creating the client but before using it
 const originalSay = client.say;
 client.say = async function(channel, message) {
     // Call the original method
     await originalSay.call(this, channel, message);
     
-    // Broadcast the message to all connected clients
-    broadcastToAll({
-        type: 'CHAT_MESSAGE',
-        data: {
-            channel: channel,
-            username: process.env.BOT_USERNAME,
-            message: message,
-            badges: {},
-            timestamp: Date.now(),
-            id: 'bot-response-' + Date.now()
-        }
-    });
+    // Only broadcast if this isn't a duplicate (use a simple cache)
+    const cacheKey = `${channel}-${message}-${Date.now()}`;
+    if (!messageCache.has(cacheKey)) {
+        messageCache.set(cacheKey, { timestamp: Date.now() });
+        
+        // Clean up after a short delay
+        setTimeout(() => {
+            messageCache.delete(cacheKey);
+        }, 1000); // 1 second should be enough to prevent duplicates
+        
+        console.log(`[BOT] Sending message to ${channel}: ${message}`);
+        
+        // Broadcast the message to all connected clients
+        broadcastToAll({
+            type: 'CHAT_MESSAGE',
+            data: {
+                channel: channel,
+                username: process.env.BOT_USERNAME,
+                message: message,
+                badges: {},
+                timestamp: Date.now(),
+                id: 'bot-response-' + Date.now()
+            }
+        });
+    }
 };
 
 // WebSocket heartbeat implementation
@@ -403,29 +416,20 @@ async function handleWebSocketMessage(ws, data) {
             case 'CHAT_COMMAND':
                 if (data.message && data.channel) {
                     try {
-                        // Check if this is a command (starts with !) from the control panel
+                        // Check if this is a command (starts with !)
                         if (data.message.startsWith('!')) {
                             // This is a command, let the command manager handle it
-                            console.log(`Treating message as command: ${data.message}`);
+                            console.log(`[CONTROL] Treating message as command: ${data.message}`);
+                            
+                            // We don't need to broadcast here - the command response will be 
+                            // captured by our client.say wrapper
+                            
                             const result = await commandManager.handleCommand(
                                 client,
                                 data.channel,
                                 { username: process.env.BOT_USERNAME },
                                 data.message
                             );
-                            
-                            // Broadcast the command execution as a chat message
-                            broadcastToAll({
-                                type: 'CHAT_MESSAGE',
-                                data: {
-                                    channel: data.channel,
-                                    username: process.env.BOT_USERNAME,
-                                    message: data.message,
-                                    badges: {},
-                                    timestamp: Date.now(),
-                                    id: 'bot-command-' + Date.now()
-                                }
-                            });
                             
                             ws.send(JSON.stringify({
                                 type: 'COMMAND_RESULT',
@@ -434,21 +438,10 @@ async function handleWebSocketMessage(ws, data) {
                             }));
                         } else {
                             // This is a regular chat message, just send it
-                            console.log(`Sending chat message: ${data.message}`);
-                            await client.say(data.channel, data.message);
+                            console.log(`[CONTROL] Sending chat message: ${data.message}`);
                             
-                            // Broadcast the message to all connected clients
-                            broadcastToAll({
-                                type: 'CHAT_MESSAGE',
-                                data: {
-                                    channel: data.channel,
-                                    username: process.env.BOT_USERNAME,
-                                    message: data.message,
-                                    badges: {},
-                                    timestamp: Date.now(),
-                                    id: 'bot-message-' + Date.now()
-                                }
-                            });
+                            // The message will be broadcast by our client.say wrapper
+                            await client.say(data.channel, data.message);
                             
                             ws.send(JSON.stringify({
                                 type: 'COMMAND_RESULT',
@@ -608,27 +601,15 @@ function addToMessageCache(context, commandText) {
 
 // Called every time a message comes in
 async function onMessageHandler(target, context, msg, self) {
-    // Even if it's from the bot, we want to capture it for the control panel
-    if (self) { 
-        // Broadcast the bot's own messages to all connected clients
-        broadcastToAll({
-            type: 'CHAT_MESSAGE',
-            data: {
-                channel: target,
-                username: process.env.BOT_USERNAME,
-                message: msg,
-                badges: context.badges || {},
-                timestamp: Date.now(),
-                id: context.id || 'bot-message-' + Date.now()
-            }
-        });
-        return; // Still return after broadcasting to avoid processing bot's messages as commands
-    }
+    // Log all messages for debugging
+    console.log(`[CHAT] ${self ? 'BOT' : context.username}: ${msg} (in ${target})`);
+    
+    // If it's a message from the bot, we don't need to process it as a command
+    // The message will already be captured by our client.say wrapper
+    if (self) return;
 
     // Remove whitespace from chat message
     const commandText = msg.trim().toLowerCase();
-    
-    console.log(`[DEBUG] Received message: "${msg}" from ${context.username}`);
     
     // Check if the message is actually a command
     if (!commandText.startsWith('!')) {
