@@ -127,29 +127,54 @@ wss.on('connection', (ws) => {
     // Send initial status
     sendStatus(ws);
     
-    // Track this connection
-    ws.isAlive = true;
-    ws.lastPing = Date.now();
+    // Set up a ping interval
+    const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+            try {
+                ws.ping();
+            } catch (error) {
+                console.error('Error sending ping:', error);
+            }
+        }
+    }, 30000);
     
-    ws.on('pong', () => {
-        ws.isAlive = true;
-        ws.lastPing = Date.now();
-    });
-    
-    ws.on('message', async (message) => {
+    // Handle messages
+    ws.on('message', (message) => {
         try {
             const data = JSON.parse(message);
-            await handleWebSocketMessage(ws, data);
-        } catch (err) {
-            console.error('Error:', err);
-            ws.send(JSON.stringify({ type: 'ERROR', error: err.message }));
+            
+            // Handle ping messages
+            if (data.type === 'ping') {
+                ws.send(JSON.stringify({ type: 'pong' }));
+                return;
+            }
+            
+            // Handle info requests
+            if (data.type === 'info') {
+                sendStatus(ws);
+                return;
+            }
+            
+            // ... existing message handling ...
+        } catch (error) {
+            console.error('Error handling message:', error);
+            ws.send(JSON.stringify({
+                type: 'ERROR',
+                error: error.message
+            }));
         }
     });
     
+    // Handle close
     ws.on('close', () => {
         console.log('Control panel disconnected');
-        ws.isAlive = false;
-        // Don't shut down the bot when the control panel disconnects
+        clearInterval(pingInterval);
+    });
+    
+    // Handle errors
+    ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        clearInterval(pingInterval);
     });
 });
 
@@ -191,19 +216,23 @@ function sendCommandList(ws) {
 }
 
 function sendStatus(ws) {
-    const status = {
-        type: 'STATUS',
-        data: {
-            connectionState: client.readyState(),
-            username: process.env.BOT_USERNAME,
-            processId: process.pid,
-            channels: client.getChannels(),
-            uptime: process.uptime(),
-            memory: process.memoryUsage(),
-            commandCount: commandManager.listCommands().length
+    if (ws.readyState === WebSocket.OPEN) {
+        try {
+            const status = {
+                connectionState: client ? 'OPEN' : 'CLOSED',
+                username: process.env.BOT_USERNAME,
+                processId: process.pid,
+                channels: client ? client.getChannels() : [],
+                uptime: Math.floor((Date.now() - startTime) / 1000),
+                memory: process.memoryUsage(),
+                commands: commandManager.getCommands()
+            };
+            
+            ws.send(JSON.stringify(status));
+        } catch (error) {
+            console.error('Error sending status:', error);
         }
-    };
-    ws.send(JSON.stringify(status));
+    }
 }
 
 function broadcastToAll(data) {
