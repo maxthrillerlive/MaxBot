@@ -17,6 +17,22 @@ const wss = new WebSocket.Server({ port: process.env.PORT || 8080 });
 const lockFile = path.join(__dirname, '..', 'bot.lock');
 console.log('Lock file location:', lockFile);
 
+// Check for restart log to see if we were restarted
+const restartLogPath = path.join(__dirname, '..', 'restart.log');
+if (fs.existsSync(restartLogPath)) {
+    console.log('Found restart log, bot was restarted by restart script');
+    try {
+        // Read the log to see when the restart happened
+        const logContent = fs.readFileSync(restartLogPath, 'utf8');
+        const lastLine = logContent.trim().split('\n').pop();
+        console.log('Last restart log entry:', lastLine);
+        
+        // Don't delete the log file, it might be useful for debugging
+    } catch (error) {
+        console.error('Error reading restart log:', error);
+    }
+}
+
 try {
     // Check if lock file exists and if the process is still running
     if (fs.existsSync(lockFile)) {
@@ -843,60 +859,8 @@ async function handleRestart() {
     }
 }
 
+// Replace the existing RESTART_BOT event handler with this one
 process.on('RESTART_BOT', async () => {
-    console.log('Received restart signal. Restarting bot...');
-    
-    // Notify all connected clients
-    broadcastToAll({
-        type: 'CONNECTION_STATE',
-        state: 'restarting'
-    });
-    
-    try {
-        // Disconnect from Twitch
-        if (client) {
-            console.log('Disconnecting from Twitch...');
-            await client.disconnect();
-            console.log('Disconnected from Twitch');
-        }
-        
-        // Close WebSocket server
-        if (wss) {
-            console.log('Closing WebSocket server...');
-            wss.close();
-            console.log('WebSocket server closed');
-        }
-        
-        // Remove lock file
-        if (fs.existsSync(lockFile)) {
-            console.log('Removing lock file...');
-            fs.unlinkSync(lockFile);
-            console.log('Lock file removed');
-        }
-        
-        console.log('Spawning new process...');
-        
-        // Get the current script path
-        const scriptPath = path.resolve(__dirname, 'index.js');
-        
-        // Spawn a new process with the same arguments
-        const child = spawn('node', [scriptPath], {
-            detached: true,
-            stdio: 'inherit',
-            env: process.env
-        });
-        
-        // Unref the child to allow the parent to exit
-        child.unref();
-        
-        console.log('New process spawned. Exiting...');
-        
-        // Exit after a short delay to allow messages to be sent
-        setTimeout(() => {
-            process.exit(0);
-        }, 1000);
-    } catch (error) {
-        console.error('Error during restart:', error);
-        process.exit(1);
-    }
+    console.log('Received RESTART_BOT event. Calling handleRestart()...');
+    await handleRestart();
 }); 
