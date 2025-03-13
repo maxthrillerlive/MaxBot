@@ -17,7 +17,7 @@ class DBusService extends EventEmitter {
       this.bus = dbus.sessionBus();
       
       // Create interface description
-      const interface = new dbus.Interface({
+      const dbusInterface = new dbus.Interface({
         name: this.interfaceName,
         methods: {
           SendMessage: {
@@ -41,7 +41,7 @@ class DBusService extends EventEmitter {
 
       // Export the interface
       const obj = new dbus.ObjectBuilder()
-        .interface(this.interfaceName, interface)
+        .interface(this.interfaceName, dbusInterface)
         .build();
 
       await this.bus.export(this.objectPath, obj);

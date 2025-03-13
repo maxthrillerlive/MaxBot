@@ -9,15 +9,26 @@ class DBusService extends EventEmitter {
     this.serviceName = 'org.maxbot.Service';
     this.objectPath = '/org/maxbot/Service';
     this.interfaceName = 'org.maxbot.Interface';
+    this.useSystemBus = false;
+    this.logBuffer = []; // Buffer to store logs when not connected
+    this.maxLogBuffer = 100; // Maximum number of log entries to buffer
   }
 
   async initialize() {
     try {
-      // Connect to the session bus
-      this.bus = dbus.sessionBus();
+      // Try to connect to the session bus first
+      try {
+        this.bus = dbus.sessionBus();
+        console.log('Connected to D-Bus session bus');
+      } catch (error) {
+        console.log('Failed to connect to session bus, falling back to system bus');
+        // Fall back to system bus if session bus is not available
+        this.bus = dbus.systemBus();
+        this.useSystemBus = true;
+        console.log('Connected to D-Bus system bus');
+      }
       
       // Create interface description
-      // Use dbusInterface instead of interface (reserved word)
       const dbusInterface = new dbus.Interface({
         name: this.interfaceName,
         methods: {
@@ -30,12 +41,25 @@ class DBusService extends EventEmitter {
             inSignature: 'sss',
             outSignature: 'b',
             handler: this.handleNotification.bind(this)
+          },
+          SendLogMessage: {
+            inSignature: 'sss',
+            outSignature: 'b',
+            handler: this.handleLogMessage.bind(this)
+          },
+          GetLogBuffer: {
+            inSignature: '',
+            outSignature: 'a(sss)',
+            handler: this.getLogBuffer.bind(this)
           }
         },
         properties: {},
         signals: {
           MessageReceived: {
             signature: 'ss'
+          },
+          LogMessageReceived: {
+            signature: 'sss'  // level, message, timestamp
           }
         }
       });
@@ -54,8 +78,15 @@ class DBusService extends EventEmitter {
       this.initialized = true;
       this.emit('initialized');
       
-      // Also listen for system notifications
-      this.listenForSystemNotifications();
+      // Only try to listen for system notifications if we're on the session bus
+      if (!this.useSystemBus) {
+        this.listenForSystemNotifications();
+      } else {
+        console.log('Skipping notification listener as we are on system bus');
+      }
+      
+      // Install console overrides to capture logs
+      this.installConsoleOverrides();
       
       return true;
     } catch (error) {
@@ -74,6 +105,118 @@ class DBusService extends EventEmitter {
     console.log(`D-Bus notification received: ${title} - ${body}`);
     this.emit('notification', { title, body, icon });
     return true;
+  }
+
+  handleLogMessage(level, message, timestamp) {
+    // Store in buffer
+    this.addToLogBuffer(level, message, timestamp);
+    
+    // Emit event for local handlers
+    this.emit('log', { level, message, timestamp });
+    
+    return true;
+  }
+
+  getLogBuffer() {
+    // Return the log buffer as an array of tuples
+    return this.logBuffer.map(log => [log.level, log.message, log.timestamp]);
+  }
+
+  addToLogBuffer(level, message, timestamp) {
+    this.logBuffer.push({ level, message, timestamp });
+    
+    // Keep buffer size in check
+    if (this.logBuffer.length > this.maxLogBuffer) {
+      this.logBuffer.shift();
+    }
+  }
+
+  sendLogMessage(level, message) {
+    if (!this.initialized) {
+      // Store in buffer even if not initialized
+      this.addToLogBuffer(level, message, new Date().toISOString());
+      return false;
+    }
+    
+    try {
+      // Create timestamp
+      const timestamp = new Date().toISOString();
+      
+      // Store in buffer
+      this.addToLogBuffer(level, message, timestamp);
+      
+      return true;
+    } catch (error) {
+      // Don't use console.error here to avoid infinite recursion
+      process.stderr.write(`Failed to send D-Bus log message: ${error}\n`);
+      return false;
+    }
+  }
+
+  installConsoleOverrides() {
+    // Save original console methods
+    const originalConsole = {
+      log: console.log,
+      info: console.info,
+      warn: console.warn,
+      error: console.error,
+      debug: console.debug
+    };
+
+    // Override console.log
+    console.log = (...args) => {
+      // Call original method
+      originalConsole.log(...args);
+      
+      // Send to D-Bus
+      this.sendLogMessage('info', args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+      ).join(' '));
+    };
+
+    // Override console.info
+    console.info = (...args) => {
+      // Call original method
+      originalConsole.info(...args);
+      
+      // Send to D-Bus
+      this.sendLogMessage('info', args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+      ).join(' '));
+    };
+
+    // Override console.warn
+    console.warn = (...args) => {
+      // Call original method
+      originalConsole.warn(...args);
+      
+      // Send to D-Bus
+      this.sendLogMessage('warn', args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+      ).join(' '));
+    };
+
+    // Override console.error
+    console.error = (...args) => {
+      // Call original method
+      originalConsole.error(...args);
+      
+      // Send to D-Bus
+      this.sendLogMessage('error', args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+      ).join(' '));
+    };
+
+    // Override console.debug
+    console.debug = (...args) => {
+      // Call original method
+      originalConsole.debug(...args);
+      
+      // Send to D-Bus
+      this.sendLogMessage('debug', args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+      ).join(' '));
+    };
   }
 
   async listenForSystemNotifications() {
