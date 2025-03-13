@@ -11,47 +11,33 @@ class CommandManager {
 
     loadCommands() {
         const commandsDir = path.join(__dirname, 'commands');
-        if (!fs.existsSync(commandsDir)) {
-            fs.mkdirSync(commandsDir);
-        }
-
-        // Load built-in commands
-        this.registerCommand({
-            name: 'help',
-            description: 'Show available commands',
-            enabled: true,
-            trigger: '!help',
-            modOnly: false,
-            execute: async (client, target, context) => {
-                console.log('[DEBUG] Help command executing...');
-                const commands = this.listCommands()
-                    .filter(cmd => cmd.enabled)
-                    .map(cmd => cmd.trigger)
-                    .join(', ');
-                console.log('[DEBUG] Available commands to show:', commands);
-                try {
-                    await client.say(target, `Available commands: ${commands}`);
-                    console.log('[DEBUG] Help message sent successfully');
-                    return true;
-                } catch (error) {
-                    console.error('[ERROR] Failed to send help message:', error);
-                    return false;
+        const commandFiles = fs.readdirSync(commandsDir).filter(file => file.endsWith('.js'));
+        
+        for (const file of commandFiles) {
+            try {
+                const commandPath = path.join(commandsDir, file);
+                const command = require(commandPath);
+                
+                // Skip files that don't export the expected structure
+                if (!command.config || !command.execute) {
+                    console.warn(`Command file ${file} is missing required exports`);
+                    continue;
                 }
-            }
-        });
-
-        // Load command files from the commands directory
-        if (fs.existsSync(commandsDir)) {
-            fs.readdirSync(commandsDir)
-                .filter(file => file.endsWith('.js'))
-                .forEach(file => {
-                    try {
-                        const command = require(path.join(commandsDir, file));
-                        this.registerCommand(command);
-                    } catch (error) {
-                        console.error(`Error loading command from ${file}:`, error);
+                
+                // Add the command to our commands collection
+                this.commands.set(command.config.name, command);
+                
+                // Register aliases
+                if (command.config.aliases) {
+                    for (const alias of command.config.aliases) {
+                        this.commands.set(alias, command);
                     }
-                });
+                }
+                
+                console.log(`Loaded command: ${command.config.name}`);
+            } catch (error) {
+                console.error(`Error loading command from ${file}:`, error);
+            }
         }
     }
 
