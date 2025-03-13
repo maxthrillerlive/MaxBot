@@ -1,6 +1,5 @@
 {
   "help": true,
-  "dbus": true,
   "roll": true,
   "hello": true,
   "notify": true,
