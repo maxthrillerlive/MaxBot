@@ -69,9 +69,19 @@ wss.on('connection', (ws) => {
                     await client.say(data.channel, data.message);
                     break;
                 case 'RESTART_BOT':
+                    console.log('Received restart command from control panel');
+                    ws.send(JSON.stringify({
+                        type: 'CONNECTION_STATE',
+                        state: 'restarting'
+                    }));
                     await handleRestart();
                     break;
                 case 'EXIT_BOT':
+                    console.log('Received shutdown command from control panel');
+                    ws.send(JSON.stringify({
+                        type: 'CONNECTION_STATE',
+                        state: 'shutting_down'
+                    }));
                     await handleExit();
                     break;
                 case 'ping':

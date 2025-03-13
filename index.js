@@ -398,19 +398,39 @@ async function handleWebSocketMessage(ws, data) {
                 }
                 break;
             case 'RESTART_BOT':
-                // Only the client that sent the restart command will be affected
+                // Send acknowledgment to the client
                 ws.send(JSON.stringify({
                     type: 'CONNECTION_STATE',
                     state: 'restarting'
                 }));
+                
+                // Broadcast to all clients
+                broadcastToAll({
+                    type: 'CONNECTION_STATE',
+                    state: 'restarting'
+                });
+                
+                console.log('Received restart command from control panel');
+                
+                // Call the restart function
                 await handleRestart();
                 break;
             case 'EXIT_BOT':
-                // Only exit if explicitly requested
+                // Send acknowledgment to the client
                 ws.send(JSON.stringify({
                     type: 'CONNECTION_STATE',
                     state: 'shutting_down'
                 }));
+                
+                // Broadcast to all clients
+                broadcastToAll({
+                    type: 'CONNECTION_STATE',
+                    state: 'shutting_down'
+                });
+                
+                console.log('Received shutdown command from control panel');
+                
+                // Call the exit function
                 await handleExit();
                 break;
             case 'CHAT_COMMAND':
