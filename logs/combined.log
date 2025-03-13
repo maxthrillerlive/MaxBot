@@ -15,3 +15,5 @@
 2025-03-12 20:49:00 [INFO]: test
 2025-03-12 20:50:13 [INFO]: test 󠀀
 2025-03-12 20:50:22 [INFO]: !roll
+2025-03-12 20:51:02 [ERROR]: Disconnected: Connection closed.
+2025-03-12 20:51:04 [INFO]: Connected to irc-ws.chat.twitch.tv:443
