@@ -144,14 +144,31 @@ wss.on('connection', (ws) => {
         try {
             const data = JSON.parse(message);
             
+            // Add logging to see what's being received
+            console.log('Received message:', data);
+            
+            // Make sure the message has a type
+            if (!data.type) {
+                console.error('Received message without type:', data);
+                ws.send(JSON.stringify({ 
+                    type: 'ERROR', 
+                    error: 'Message missing type field' 
+                }));
+                return;
+            }
+            
             // Handle ping messages
             if (data.type === 'ping') {
-                ws.send(JSON.stringify({ type: 'pong' }));
+                ws.send(JSON.stringify({ 
+                    type: 'pong',
+                    timestamp: Date.now(),
+                    client_id: data.client_id || 'unknown'
+                }));
                 return;
             }
             
             // Handle info requests
-            if (data.type === 'info') {
+            if (data.type === 'info' || data.type === 'status_request' || data.type === 'GET_STATUS') {
                 sendStatus(ws);
                 return;
             }
@@ -222,22 +239,24 @@ function sendStatus(ws) {
             // Get commands safely
             let commands = [];
             try {
-                // Try listCommands first (which seems to be the correct method)
+                // Try listCommands first
                 commands = commandManager.listCommands();
             } catch (cmdError) {
                 console.error('Error getting commands:', cmdError);
-                // Fallback to empty array if there's an error
                 commands = [];
             }
             
             const status = {
-                connectionState: client ? 'OPEN' : 'CLOSED',
-                username: process.env.BOT_USERNAME,
-                processId: process.pid,
-                channels: client ? client.getChannels() : [],
-                uptime: Math.floor((Date.now() - startTime) / 1000),
-                memory: process.memoryUsage(),
-                commands: commands
+                type: 'STATUS', // Make sure to include the type field
+                data: {
+                    connectionState: client ? 'OPEN' : 'CLOSED',
+                    username: process.env.BOT_USERNAME,
+                    processId: process.pid,
+                    channels: client ? client.getChannels() : [],
+                    uptime: Math.floor((Date.now() - startTime) / 1000),
+                    memory: process.memoryUsage(),
+                    commands: commands
+                }
             };
             
             ws.send(JSON.stringify(status));
