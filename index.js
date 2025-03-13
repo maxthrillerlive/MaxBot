@@ -357,6 +357,23 @@ async function handleWebSocketMessage(ws, data) {
                 }));
                 await handleExit();
                 break;
+            case 'CHAT_COMMAND':
+                if (data.message && data.channel) {
+                    // Send the message to the specified channel
+                    await client.say(data.channel, data.message);
+                    ws.send(JSON.stringify({
+                        type: 'COMMAND_RESULT',
+                        success: true,
+                        command: 'chat',
+                        message: data.message
+                    }));
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'ERROR',
+                        error: 'Missing message or channel for CHAT_COMMAND'
+                    }));
+                }
+                break;
             default:
                 ws.send(JSON.stringify({ 
                     type: 'ERROR', 
