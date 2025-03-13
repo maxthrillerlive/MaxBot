@@ -228,15 +228,33 @@ async function handleRestart() {
             fs.unlinkSync(lockFile);
         }
         
-        // Start a new instance
+        console.log('Spawning new instance...');
+        
+        // Get the current script path
+        const scriptPath = path.resolve(__dirname, 'server.js');
+        console.log('Script path:', scriptPath);
+        
+        // Get the current Node executable path
+        const nodePath = process.execPath;
+        console.log('Node executable path:', nodePath);
+        
+        // Start a new instance with full paths
         const { spawn } = require('child_process');
-        const scriptPath = path.join(__dirname, 'server.js');
-        const child = spawn('node', [scriptPath], {
+        const child = spawn(nodePath, [scriptPath], {
             detached: true,
-            stdio: 'inherit'
+            stdio: 'inherit',  // Use 'inherit' instead of 'ignore'
+            env: process.env,
+            cwd: path.dirname(scriptPath)  // Set working directory to script directory
+        });
+        
+        // Log any errors from the child process
+        child.on('error', (err) => {
+            console.error('Failed to start child process:', err);
         });
         
         child.unref();
+        
+        console.log('New process spawned with PID:', child.pid);
         
         // Notify all clients
         broadcastToAll({ type: 'RESTARTING' });

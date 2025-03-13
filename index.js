@@ -731,6 +731,9 @@ async function handleRestart() {
     });
     
     try {
+        // Save command states before disconnecting
+        commandManager.saveState();
+        
         // Disconnect from Twitch
         if (client) {
             console.log('Disconnecting from Twitch...');
@@ -752,24 +755,85 @@ async function handleRestart() {
             console.log('Lock file removed');
         }
         
-        console.log('Spawning new process...');
+        // Create a restart script that will run independently
+        const restartScriptPath = path.join(__dirname, '..', 'restart-bot.js');
+        const scriptContent = `
+        const { spawn } = require('child_process');
+        const path = require('path');
+        const fs = require('fs');
         
-        // Get the current script path
-        const scriptPath = path.resolve(__dirname, 'index.js');
+        // Log function
+        function log(message) {
+            console.log(new Date().toISOString() + ' - ' + message);
+            fs.appendFileSync(path.join(__dirname, 'restart.log'), new Date().toISOString() + ' - ' + message + '\\n');
+        }
         
-        // Spawn a new process with the same arguments
-        const child = spawn('node', [scriptPath], {
+        // Wait a moment to ensure the main process has exited
+        setTimeout(() => {
+            try {
+                log('Restart script running...');
+                
+                // Path to the bot script
+                const botPath = path.join(__dirname, 'MaxBot', 'index.js');
+                log('Bot path: ' + botPath);
+                
+                // Check if the file exists
+                if (!fs.existsSync(botPath)) {
+                    log('ERROR: Bot file not found: ' + botPath);
+                    process.exit(1);
+                }
+                
+                // Get the current Node executable path
+                const nodePath = process.execPath;
+                log('Node executable: ' + nodePath);
+                
+                // Spawn the bot process
+                const child = spawn(nodePath, [botPath], {
+                    detached: true,
+                    stdio: 'inherit',
+                    env: process.env,
+                    cwd: path.dirname(path.dirname(botPath)) // Set working directory to project root
+                });
+                
+                child.on('error', (err) => {
+                    log('ERROR: Failed to start bot: ' + err.message);
+                });
+                
+                // Unref the child to allow this script to exit
+                child.unref();
+                
+                log('Bot restarted with PID: ' + child.pid);
+                
+                // Exit this script
+                setTimeout(() => {
+                    process.exit(0);
+                }, 1000);
+            } catch (error) {
+                log('ERROR: Error in restart script: ' + error.message);
+                process.exit(1);
+            }
+        }, 2000);
+        `;
+        
+        fs.writeFileSync(restartScriptPath, scriptContent);
+        console.log('Created restart script at:', restartScriptPath);
+        
+        // Execute the restart script
+        const { spawn } = require('child_process');
+        const nodePath = process.execPath; // Get the current Node executable path
+        
+        const restartProcess = spawn(nodePath, [restartScriptPath], {
             detached: true,
-            stdio: 'inherit',
+            stdio: 'ignore',
             env: process.env
         });
         
-        // Unref the child to allow the parent to exit
-        child.unref();
+        restartProcess.unref();
+        console.log('Launched restart script with PID:', restartProcess.pid);
         
-        console.log('New process spawned. Exiting...');
+        console.log('Exiting main process...');
         
-        // Exit after a short delay to allow messages to be sent
+        // Exit after a short delay
         setTimeout(() => {
             process.exit(0);
         }, 1000);
