@@ -2,7 +2,5 @@
   "help": true,
   "roll": true,
   "hello": true,
-  "notify": true,
-  "restart": true,
-  "services": true
+  "restart": true
 }
