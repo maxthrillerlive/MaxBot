@@ -666,6 +666,18 @@ async function onMessageHandler(target, context, msg, self) {
 
     // Handle mod commands first
     if (isMod) {
+        // Add direct restart command handling
+        if (commandText === '!restart') {
+            await client.say(target, `@${context.username} Restarting the bot...`);
+            console.log(`Restart command issued by ${context.username}`);
+            
+            // Wait a moment for the message to be sent before restarting
+            setTimeout(async () => {
+                await handleRestart();
+            }, 1000);
+            return; // Exit after handling restart command
+        }
+        
         if (commandText.startsWith('!enable ')) {
             const commandName = commandText.split(' ')[1];
             if (commandManager.enableCommand(commandName)) {
