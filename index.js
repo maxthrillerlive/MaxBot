@@ -199,6 +199,20 @@ wss.on('connection', (ws) => {
         }
     }, 30000);
     
+    // Set up a status update interval for this specific connection
+    const statusInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+            try {
+                sendStatus(ws);
+            } catch (error) {
+                console.error('Error sending status update:', error);
+                clearInterval(statusInterval);
+            }
+        } else {
+            clearInterval(statusInterval);
+        }
+    }, 10000); // Send status every 10 seconds
+    
     // Handle messages
     ws.on('message', (message) => {
         try {
@@ -253,6 +267,7 @@ wss.on('connection', (ws) => {
     ws.on('close', () => {
         console.log('Control panel disconnected');
         clearInterval(pingInterval);
+        clearInterval(statusInterval);
     });
     
     // Handle errors
@@ -314,20 +329,32 @@ function sendStatus(ws) {
                 commands = [];
             }
             
+            // Calculate uptime
+            const uptime = Math.floor((Date.now() - startTime) / 1000);
+            
+            // Create a more comprehensive status object
             const status = {
                 type: 'STATUS',
                 data: {
-                    connectionState: client ? 'OPEN' : 'CLOSED',
+                    connectionState: client && client.readyState === 'OPEN' ? 'Connected' : 'Disconnected',
                     username: process.env.BOT_USERNAME,
                     processId: process.pid,
                     channels: client ? client.getChannels() : [],
-                    uptime: Math.floor((Date.now() - startTime) / 1000),
+                    uptime: uptime,
                     memory: process.memoryUsage(),
-                    commands: commands
+                    commands: commands,
+                    timestamp: Date.now()
                 }
             };
             
+            console.log('Sending status update to control panel');
             ws.send(JSON.stringify(status));
+            
+            // Also send a separate connection state message for clarity
+            ws.send(JSON.stringify({
+                type: 'CONNECTION_STATE',
+                state: client && client.readyState === 'OPEN' ? 'Connected' : 'Disconnected'
+            }));
         } catch (error) {
             console.error('Error sending status:', error);
         }
