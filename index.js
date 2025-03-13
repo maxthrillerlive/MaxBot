@@ -248,7 +248,7 @@ function sendStatus(ws) {
             }
             
             const status = {
-                type: 'STATUS', // Make sure to include the type field
+                type: 'STATUS',
                 data: {
                     connectionState: client ? 'OPEN' : 'CLOSED',
                     username: process.env.BOT_USERNAME,
