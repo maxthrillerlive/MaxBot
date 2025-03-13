@@ -219,6 +219,17 @@ function sendCommandList(ws) {
 function sendStatus(ws) {
     if (ws.readyState === WebSocket.OPEN) {
         try {
+            // Get commands safely
+            let commands = [];
+            try {
+                // Try listCommands first (which seems to be the correct method)
+                commands = commandManager.listCommands();
+            } catch (cmdError) {
+                console.error('Error getting commands:', cmdError);
+                // Fallback to empty array if there's an error
+                commands = [];
+            }
+            
             const status = {
                 connectionState: client ? 'OPEN' : 'CLOSED',
                 username: process.env.BOT_USERNAME,
@@ -226,7 +237,7 @@ function sendStatus(ws) {
                 channels: client ? client.getChannels() : [],
                 uptime: Math.floor((Date.now() - startTime) / 1000),
                 memory: process.memoryUsage(),
-                commands: commandManager.getCommands()
+                commands: commands
             };
             
             ws.send(JSON.stringify(status));
