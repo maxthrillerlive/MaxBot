@@ -382,14 +382,37 @@ async function handleWebSocketMessage(ws, data) {
                 break;
             case 'CHAT_COMMAND':
                 if (data.message && data.channel) {
-                    // Send the message to the specified channel
-                    await client.say(data.channel, data.message);
-                    ws.send(JSON.stringify({
-                        type: 'COMMAND_RESULT',
-                        success: true,
-                        command: 'chat',
-                        message: data.message
-                    }));
+                    try {
+                        // Send the message to the specified channel
+                        await client.say(data.channel, data.message);
+                        
+                        // Broadcast the message to all connected clients
+                        broadcastToAll({
+                            type: 'CHAT_MESSAGE',
+                            data: {
+                                channel: data.channel,
+                                username: process.env.BOT_USERNAME, // Use the bot's username
+                                message: data.message,
+                                badges: {}, // Bot doesn't have badges in this context
+                                timestamp: Date.now(),
+                                id: 'bot-message-' + Date.now() // Generate a unique ID
+                            }
+                        });
+                        
+                        // Send success response to the client that sent the command
+                        ws.send(JSON.stringify({
+                            type: 'COMMAND_RESULT',
+                            success: true,
+                            command: 'chat',
+                            message: data.message
+                        }));
+                    } catch (error) {
+                        console.error('Error sending chat message:', error);
+                        ws.send(JSON.stringify({
+                            type: 'ERROR',
+                            error: 'Failed to send chat message: ' + error.message
+                        }));
+                    }
                 } else {
                     ws.send(JSON.stringify({
                         type: 'ERROR',
