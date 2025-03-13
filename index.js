@@ -6,10 +6,8 @@ const path = require('path');
 const commandManager = require('./commandManager');
 const logger = require('./logger');
 const { spawn } = require('child_process');
-const fedora = require('./fedora');
-const dbusService = require('./dbus-service');
 
-// Add this line near the top of the file, with other global variables
+// Add this line to define startTime
 const startTime = Date.now();
 
 // Create WebSocket server
@@ -305,20 +303,6 @@ async function handleWebSocketMessage(ws, data) {
                     state: 'shutting_down'
                 }));
                 await handleExit();
-                break;
-            case 'get-logs':
-                // Get logs from D-Bus service
-                const logs = fedora.dbusService.logBuffer.map(log => ({
-                    level: log.level,
-                    message: log.message,
-                    timestamp: log.timestamp
-                }));
-                
-                // Send logs back to client
-                ws.send(JSON.stringify({
-                    type: 'logs-response',
-                    data: { logs }
-                }));
                 break;
             default:
                 ws.send(JSON.stringify({ 
@@ -668,96 +652,4 @@ process.on('RESTART_BOT', async () => {
         console.error('Error during restart:', error);
         process.exit(1);
     }
-});
-
-// Initialize Fedora integration if available
-fedora.initialize().then(enabled => {
-  if (enabled) {
-    console.log('Fedora integration enabled');
-    
-    // Register Fedora-specific commands
-    const fedoraCommands = fedora.getCommands();
-    fedoraCommands.forEach(command => {
-      commandManager.registerCommand(command);
-    });
-    
-    // Forward D-Bus messages to WebSocket clients
-    fedora.dbusService.on('message', ({ sender, message }) => {
-      broadcastToClients({
-        type: 'dbus-message',
-        data: { sender, message, timestamp: new Date().toISOString() }
-      });
-    });
-    
-    fedora.dbusService.on('notification', ({ title, body, icon }) => {
-      broadcastToClients({
-        type: 'dbus-notification',
-        data: { title, body, icon, timestamp: new Date().toISOString() }
-      });
-    });
-    
-    // Forward log messages to WebSocket clients
-    fedora.dbusService.on('log', ({ level, message, timestamp }) => {
-      broadcastToClients({
-        type: 'log',
-        data: { level, message, timestamp }
-      });
-    });
-  } else {
-    console.log('Fedora integration not available');
-  }
-});
-
-// Initialize D-Bus service
-dbusService.initialize().then(success => {
-  if (success) {
-    console.log('D-Bus service started successfully');
-  } else {
-    console.warn('D-Bus service failed to start');
-  }
-});
-
-// Forward D-Bus messages to WebSocket clients
-dbusService.on('message', ({ sender, message }) => {
-  broadcastToClients({
-    type: 'dbus-message',
-    data: { sender, message, timestamp: new Date().toISOString() }
-  });
-});
-
-dbusService.on('notification', ({ title, body, icon }) => {
-  broadcastToClients({
-    type: 'dbus-notification',
-    data: { title, body, icon, timestamp: new Date().toISOString() }
-  });
-});
-
-// Add handling for D-Bus related messages from clients
-function handleMessage(ws, message) {
-  // ... existing message handling code ...
-  
-  if (message.type === 'send-dbus-message') {
-    const { sender, content } = message.data;
-    dbusService.sendSignal(sender, content);
-    return;
-  }
-  
-  if (message.type === 'get-logs' && fedora.isEnabled) {
-    // Get logs from D-Bus service
-    const logs = fedora.dbusService.logBuffer.map(log => ({
-      level: log.level,
-      message: log.message,
-      timestamp: log.timestamp
-    }));
-    
-    // Send logs back to client
-    ws.send(JSON.stringify({
-      type: 'logs-response',
-      data: { logs }
-    }));
-    
-    return;
-  }
-  
-  // ... rest of the message handling code ...
-} 
+}); 
