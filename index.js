@@ -6,6 +6,7 @@ const path = require('path');
 const commandManager = require('./commandManager');
 const logger = require('./logger');
 const { spawn } = require('child_process');
+const fedora = require('./fedora');
 
 // Create WebSocket server
 const wss = new WebSocket.Server({ port: process.env.PORT || 8080 });
@@ -612,5 +613,14 @@ process.on('RESTART_BOT', async () => {
     } catch (error) {
         console.error('Error during restart:', error);
         process.exit(1);
+    }
+});
+
+// Initialize Fedora-specific features if running on Fedora
+fedora.initialize().then(initialized => {
+    if (initialized) {
+        console.log('Fedora-specific features enabled');
+        // Send a notification that the bot has started
+        fedora.sendNotification('MaxBot Started', 'The Twitch bot is now running', 'normal');
     }
 }); 

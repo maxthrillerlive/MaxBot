@@ -16,7 +16,8 @@
         "express-rate-limit": "^7.1.5",
         "express-session": "^1.18.0",
         "tmi.js": "^1.8.5",
-        "ws": "^8.13.0"
+        "ws": "^8.13.0",
+        "dbus-next": "^0.10.2"
     },
     "devDependencies": {
         "jest": "^29.5.0",
