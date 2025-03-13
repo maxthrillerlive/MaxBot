@@ -6,6 +6,7 @@ const path = require('path');
 
 // Global variables
 let isShuttingDown = false;
+const startTime = Date.now();
 
 // Validate environment variables first
 if (!process.env.BOT_USERNAME) {
@@ -38,9 +39,18 @@ const client = new tmi.Client({
     channels: [process.env.CHANNEL_NAME]
 });
 
+// Set up heartbeat interval to keep connections alive
+function heartbeat() {
+    this.isAlive = true;
+}
+
 // Handle WebSocket connections
 wss.on('connection', (ws) => {
     console.log('Control panel connected');
+    
+    // Set up heartbeat for this connection
+    ws.isAlive = true;
+    ws.on('pong', heartbeat);
     
     // Send initial status
     sendStatus(ws);
@@ -48,8 +58,11 @@ wss.on('connection', (ws) => {
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
+            console.log('Received message:', data.type);
+            
             switch (data.type) {
                 case 'GET_STATUS':
+                case 'status_request':
                     sendStatus(ws);
                     break;
                 case 'CHAT_COMMAND':
@@ -61,16 +74,62 @@ wss.on('connection', (ws) => {
                 case 'EXIT_BOT':
                     await handleExit();
                     break;
+                case 'ping':
+                    // Respond to ping with pong
+                    ws.send(JSON.stringify({
+                        type: 'pong',
+                        timestamp: Date.now(),
+                        client_id: data.client_id || 'unknown'
+                    }));
+                    break;
+                case 'register':
+                    // Acknowledge registration
+                    console.log(`Client registered: ${data.client_id || 'unknown'} (${data.client_type || 'unknown'})`);
+                    ws.send(JSON.stringify({
+                        type: 'register_ack',
+                        timestamp: Date.now(),
+                        client_id: data.client_id || 'unknown'
+                    }));
+                    break;
+                case 'disconnect':
+                    console.log(`Client disconnecting: ${data.client_id || 'unknown'}`);
+                    break;
             }
         } catch (err) {
-            console.error('Error:', err);
-            ws.send(JSON.stringify({ type: 'ERROR', error: err.message }));
+            console.error('Error processing message:', err);
+            try {
+                ws.send(JSON.stringify({ type: 'ERROR', error: err.message }));
+            } catch (sendErr) {
+                console.error('Error sending error response:', sendErr);
+            }
         }
     });
 
     ws.on('close', () => {
         console.log('Control panel disconnected');
     });
+    
+    ws.on('error', (err) => {
+        console.error('WebSocket error:', err);
+    });
+});
+
+// Set up a periodic ping to check for dead connections
+const interval = setInterval(function ping() {
+    wss.clients.forEach(function each(ws) {
+        if (ws.isAlive === false) {
+            console.log('Terminating inactive connection');
+            return ws.terminate();
+        }
+        
+        ws.isAlive = false;
+        ws.ping(() => {});
+    });
+}, 30000); // Check every 30 seconds
+
+// Clean up the interval when the server closes
+wss.on('close', function close() {
+    clearInterval(interval);
 });
 
 // Connect to Twitch
@@ -91,31 +150,57 @@ client.on('message', (channel, tags, message, self) => {
         }
     };
 
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(chatMessage));
-        }
-    });
+    broadcastToAll(chatMessage);
 });
 
 function sendStatus(ws) {
-    const status = {
-        type: 'STATUS',
-        data: {
-            connectionState: client.readyState(),
-            username: process.env.BOT_USERNAME,
-            processId: process.pid,
-            channels: client.getChannels()
-        }
-    };
-    ws.send(JSON.stringify(status));
+    try {
+        const uptime = Math.floor((Date.now() - startTime) / 1000);
+        const uptimeStr = formatUptime(uptime);
+        
+        const status = {
+            type: 'STATUS',
+            data: {
+                connectionState: client.readyState(),
+                username: process.env.BOT_USERNAME,
+                processId: process.pid,
+                channels: client.getChannels(),
+                uptime: uptimeStr,
+                connected: client.readyState() === 'OPEN'
+            }
+        };
+        ws.send(JSON.stringify(status));
+    } catch (err) {
+        console.error('Error sending status:', err);
+    }
+}
+
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    seconds %= 86400;
+    const hours = Math.floor(seconds / 3600);
+    seconds %= 3600;
+    const minutes = Math.floor(seconds / 60);
+    seconds %= 60;
+    
+    let result = '';
+    if (days > 0) result += `${days}d `;
+    if (hours > 0 || days > 0) result += `${hours}h `;
+    if (minutes > 0 || hours > 0 || days > 0) result += `${minutes}m `;
+    result += `${seconds}s`;
+    
+    return result;
 }
 
 function broadcastToAll(data) {
     const message = JSON.stringify(data);
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+            try {
+                client.send(message);
+            } catch (err) {
+                console.error('Error broadcasting message:', err);
+            }
         }
     });
 }
@@ -196,4 +281,18 @@ client.on('connected', () => {
 client.on('disconnected', (reason) => {
     console.log('Disconnected:', reason);
     broadcastToAll({ type: 'DISCONNECTED', reason });
-}); 
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    broadcastToAll({ type: 'ERROR', error: 'Server error: ' + err.message });
+});
+
+// Handle unhandled rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled rejection at:', promise, 'reason:', reason);
+    broadcastToAll({ type: 'ERROR', error: 'Server promise rejection: ' + reason });
+});
+
+console.log(`MaxBot server started on port 8080`); 
