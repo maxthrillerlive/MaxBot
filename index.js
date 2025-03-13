@@ -121,21 +121,32 @@ const opts = {
 // Create a client with our options
 const client = new tmi.client(opts);
 
-// Initialize WebSocket server
+// WebSocket heartbeat implementation
 wss.on('connection', (ws) => {
     console.log('Control panel connected');
+    
+    // Set up heartbeat for this connection
+    ws.isAlive = true;
+    ws.on('pong', () => {
+        // Mark the connection as alive when pong is received
+        ws.isAlive = true;
+    });
     
     // Send initial status
     sendStatus(ws);
     
-    // Set up a ping interval
+    // Set up a ping interval for this specific connection
     const pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
             try {
+                // Send a ping frame (not a message)
                 ws.ping();
             } catch (error) {
                 console.error('Error sending ping:', error);
+                clearInterval(pingInterval);
             }
+        } else {
+            clearInterval(pingInterval);
         }
     }, 30000);
     
@@ -146,6 +157,9 @@ wss.on('connection', (ws) => {
             
             // Add logging to see what's being received
             console.log('Received message:', data);
+            
+            // Reset the isAlive flag on any message received
+            ws.isAlive = true;
             
             // Make sure the message has a type
             if (!data.type) {
@@ -159,6 +173,7 @@ wss.on('connection', (ws) => {
             
             // Handle ping messages
             if (data.type === 'ping') {
+                ws.isAlive = true; // Mark as alive
                 ws.send(JSON.stringify({ 
                     type: 'pong',
                     timestamp: Date.now(),
@@ -169,6 +184,7 @@ wss.on('connection', (ws) => {
             
             // Handle info requests
             if (data.type === 'info' || data.type === 'status_request' || data.type === 'GET_STATUS') {
+                ws.isAlive = true; // Mark as alive
                 sendStatus(ws);
                 return;
             }
@@ -197,27 +213,29 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Add error handling for WebSocket server
-wss.on('error', (error) => {
-    console.error('WebSocket server error:', error);
-});
-
-// WebSocket heartbeat
-const pingInterval = setInterval(() => {
+// Global heartbeat interval to check for stale connections
+const heartbeatInterval = setInterval(() => {
+    console.log('Checking for stale connections...');
     wss.clients.forEach((ws) => {
-        if (!ws.isAlive) {
+        if (ws.isAlive === false) {
             console.log('Terminating stale connection');
             return ws.terminate();
         }
         
         ws.isAlive = false;
-        ws.ping();
+        try {
+            ws.ping();
+        } catch (e) {
+            // If ping fails, terminate the connection
+            console.error('Error sending ping, terminating connection:', e.message);
+            ws.terminate();
+        }
     });
-}, 30000);
+}, 60000); // Check every 60 seconds instead of 30
 
 // Clean up interval on server close
 wss.on('close', () => {
-    clearInterval(pingInterval);
+    clearInterval(heartbeatInterval);
 });
 
 function sendError(ws, message) {
