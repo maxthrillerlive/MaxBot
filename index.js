@@ -135,7 +135,7 @@ client.say = async function(channel, message) {
         // Clean up after a short delay
         setTimeout(() => {
             messageCache.delete(cacheKey);
-        }, 1000); // 1 second should be enough to prevent duplicates
+        }, 1000);
         
         console.log(`[BOT] Sending message to ${channel}: ${message}`);
         
@@ -146,7 +146,7 @@ client.say = async function(channel, message) {
                 channel: channel,
                 username: process.env.BOT_USERNAME,
                 message: message,
-                badges: {},
+                badges: { bot: '1' },  // Add a bot badge
                 timestamp: Date.now(),
                 id: 'bot-response-' + Date.now()
             }
