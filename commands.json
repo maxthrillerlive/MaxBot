@@ -1,0 +1,9 @@
+{
+  "help": true,
+  "dbus": true,
+  "roll": true,
+  "hello": true,
+  "notify": true,
+  "restart": true,
+  "services": true
+}
