@@ -121,41 +121,35 @@ const client = new tmi.client(opts);
 
 // Initialize WebSocket server
 wss.on('connection', (ws) => {
-    logger.info('Control panel connected');
+    console.log('Control panel connected');
     
     // Send initial status
     sendStatus(ws);
-
+    
     // Track this connection
     ws.isAlive = true;
     ws.lastPing = Date.now();
-
+    
     ws.on('pong', () => {
         ws.isAlive = true;
         ws.lastPing = Date.now();
     });
-
+    
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
-            handleWebSocketMessage(ws, data);
+            await handleWebSocketMessage(ws, data);
         } catch (err) {
             console.error('Error:', err);
             ws.send(JSON.stringify({ type: 'ERROR', error: err.message }));
         }
     });
-
-    ws.on('error', (error) => {
-        console.error('WebSocket connection error:', error);
-    });
-
+    
     ws.on('close', () => {
         console.log('Control panel disconnected');
         ws.isAlive = false;
+        // Don't shut down the bot when the control panel disconnects
     });
-
-    // Send welcome message with available commands
-    sendCommandList(ws);
 });
 
 // Add error handling for WebSocket server
@@ -227,7 +221,10 @@ async function handleWebSocketMessage(ws, data) {
                 sendStatus(ws);
                 break;
             case 'GET_COMMANDS':
-                sendCommandList(ws);
+                ws.send(JSON.stringify({
+                    type: 'COMMANDS',
+                    data: commandManager.listCommands()
+                }));
                 break;
             case 'ENABLE_COMMAND':
                 if (commandManager.enableCommand(data.command)) {
@@ -261,9 +258,19 @@ async function handleWebSocketMessage(ws, data) {
                 }
                 break;
             case 'RESTART_BOT':
+                // Only the client that sent the restart command will be affected
+                ws.send(JSON.stringify({
+                    type: 'CONNECTION_STATE',
+                    state: 'restarting'
+                }));
                 await handleRestart();
                 break;
             case 'EXIT_BOT':
+                // Only exit if explicitly requested
+                ws.send(JSON.stringify({
+                    type: 'CONNECTION_STATE',
+                    state: 'shutting_down'
+                }));
                 await handleExit();
                 break;
             default:
