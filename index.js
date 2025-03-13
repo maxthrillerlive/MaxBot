@@ -173,7 +173,8 @@ wss.on('connection', (ws) => {
                 return;
             }
             
-            // ... existing message handling ...
+            // Handle other message types
+            handleWebSocketMessage(ws, data);
         } catch (error) {
             console.error('Error handling message:', error);
             ws.send(JSON.stringify({
@@ -270,7 +271,11 @@ function broadcastToAll(data) {
     const message = JSON.stringify(data);
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+            try {
+                client.send(message);
+            } catch (error) {
+                console.error('Error broadcasting message:', error);
+            }
         }
     });
 }
