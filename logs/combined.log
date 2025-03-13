@@ -158,3 +158,62 @@
 2025-03-13 12:11:38 [ERROR]: Disconnected: Connection closed.
 2025-03-13 12:11:45 [INFO]: Connected to irc-ws.chat.twitch.tv:443
 2025-03-13 12:18:51 [ERROR]: Disconnected: Connection closed.
+2025-03-13 12:18:54 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:19:06 [INFO]: !so @maxthriller
+2025-03-13 12:19:06 [INFO]: Go follow @maxthriller's channel -> https://twitch.tv/maxthriller
+2025-03-13 12:19:33 [INFO]: !so maxthriller
+2025-03-13 12:19:33 [INFO]: Go follow maxthriller's channel -> https://twitch.tv/maxthriller
+2025-03-13 12:21:55 [INFO]: ! so
+2025-03-13 12:21:58 [INFO]: !so
+2025-03-13 12:22:03 [INFO]: !so maxthriller
+2025-03-13 12:22:59 [ERROR]: Disconnected: Connection closed.
+2025-03-13 12:23:02 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:23:06 [INFO]: !so maxthriller 󠀀
+2025-03-13 12:23:18 [ERROR]: Disconnected: Connection closed.
+2025-03-13 12:23:30 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:23:38 [INFO]: !so maxthriller 󠀀
+2025-03-13 12:25:45 [ERROR]: Disconnected: Connection closed.
+2025-03-13 12:25:48 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:25:50 [INFO]: !so maxthriller
+2025-03-13 12:26:07 [INFO]: !shoutout maxthriller
+2025-03-13 12:26:20 [INFO]: !so @maxthriller
+2025-03-13 12:26:34 [INFO]: !shoutout @maxthriller
+2025-03-13 12:26:58 [INFO]: !help
+2025-03-13 12:27:08 [INFO]: !hello
+2025-03-13 12:27:36 [INFO]: !hello 󠀀
+2025-03-13 12:27:45 [INFO]: !help
+2025-03-13 12:29:48 [ERROR]: Disconnected: Connection closed.
+2025-03-13 12:29:51 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:29:54 [INFO]: !help 󠀀
+2025-03-13 12:29:58 [INFO]: !help
+2025-03-13 12:30:21 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:30:25 [INFO]: !help 󠀀
+2025-03-13 12:30:33 [INFO]: !hello
+2025-03-13 12:30:38 [INFO]: !so @maxthriller
+2025-03-13 12:33:26 [ERROR]: Disconnected: Connection closed.
+2025-03-13 12:33:29 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:33:43 [INFO]: !help
+2025-03-13 12:33:47 [INFO]: !hello
+2025-03-13 12:33:52 [INFO]: !help roll
+2025-03-13 12:34:45 [INFO]: !test
+2025-03-13 12:34:51 [INFO]: !roll
+2025-03-13 12:38:55 [ERROR]: Disconnected: Connection closed.
+2025-03-13 12:38:58 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:39:01 [INFO]: !roll
+2025-03-13 12:39:03 [INFO]: !dice
+2025-03-13 12:39:08 [INFO]: !help roll
+2025-03-13 12:39:14 [INFO]: !help dice
+2025-03-13 12:40:43 [ERROR]: Disconnected: Connection closed.
+2025-03-13 12:40:46 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:40:51 [INFO]: !help
+2025-03-13 12:41:01 [INFO]: !help roll
+2025-03-13 12:41:05 [INFO]: !help dice
+2025-03-13 12:41:23 [INFO]: !help hello
+2025-03-13 12:41:28 [INFO]: !help hso
+2025-03-13 12:41:39 [INFO]: !help so
+2025-03-13 12:41:49 [INFO]: !help help
+2025-03-13 12:42:03 [INFO]: !cmds dice
+2025-03-13 12:42:04 [INFO]: @maxthriller You can find a list of all Commands here https://StreamElements.com/maxthriller/commands
+2025-03-13 12:42:33 [ERROR]: Disconnected: Connection closed.
+2025-03-13 12:42:41 [INFO]: Connected to irc-ws.chat.twitch.tv:443
+2025-03-13 12:42:45 [ERROR]: Disconnected: Connection closed.

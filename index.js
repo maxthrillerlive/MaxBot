@@ -589,6 +589,11 @@ console.log('Channel:', process.env.CHANNEL_NAME);
 console.log('\nTo safely stop the bot, press Ctrl+C');
 
 client.connect()
+    .then(() => {
+        // Force reload commands to ensure they're all loaded
+        commandManager.reloadAllCommands();
+        console.log('Bot connected successfully.');
+    })
     .catch(err => {
         console.error('Connection failed:', err);
         if (err.message.includes('authentication failed')) {

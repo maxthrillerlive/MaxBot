@@ -1,20 +1,31 @@
-module.exports = {
+// Hello command for MaxBot
+
+// Command configuration
+const config = {
     name: 'hello',
-    trigger: '!hello',
+    aliases: ['hi'],
     description: 'Greets the user',
-    enabled: true,
+    usage: '!hello',
+    cooldown: 5,
     modOnly: false,
-    execute: async (client, target, context) => {
-        console.log('[DEBUG] Hello command executing...');
-        console.log('[DEBUG] Target channel:', target);
-        console.log('[DEBUG] User context:', context.username);
-        try {
-            await client.say(target, `Hello @${context.username}!`);
-            console.log('[DEBUG] Hello message sent successfully');
-            return true;
-        } catch (error) {
-            console.error('[ERROR] Failed to send hello message:', error);
-            return false;
-        }
+    enabled: true
+};
+
+/**
+ * Execute the hello command
+ */
+async function execute(client, channel, context, commandText) {
+    try {
+        await client.say(channel, `@${context.username} Hello there!`);
+        return true;
+    } catch (error) {
+        console.error(`Error in hello command:`, error);
+        return false;
     }
+}
+
+// Export the command
+module.exports = {
+    config,
+    execute
 }; 
