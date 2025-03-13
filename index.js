@@ -328,17 +328,40 @@ async function handleWebSocketMessage(ws, data) {
                 break;
             case 'EXECUTE_COMMAND':
                 if (data.command && data.channel) {
-                    const result = await commandManager.handleCommand(
-                        client,
-                        data.channel,
-                        { username: process.env.BOT_USERNAME },
-                        data.command
-                    );
-                    ws.send(JSON.stringify({
-                        type: 'COMMAND_RESULT',
-                        success: result,
-                        command: data.command
-                    }));
+                    // Check if this is a command (starts with !) or a regular message
+                    if (data.command.startsWith('!')) {
+                        // This is a command, handle it normally
+                        const result = await commandManager.handleCommand(
+                            client,
+                            data.channel,
+                            { username: process.env.BOT_USERNAME },
+                            data.command
+                        );
+                        ws.send(JSON.stringify({
+                            type: 'COMMAND_RESULT',
+                            success: result,
+                            command: data.command
+                        }));
+                    } else {
+                        // This is a regular chat message, send it directly
+                        try {
+                            await client.say(data.channel, data.command);
+                            ws.send(JSON.stringify({
+                                type: 'COMMAND_RESULT',
+                                success: true,
+                                command: 'chat',
+                                message: data.command
+                            }));
+                        } catch (error) {
+                            console.error('Error sending chat message:', error);
+                            ws.send(JSON.stringify({
+                                type: 'COMMAND_RESULT',
+                                success: false,
+                                command: 'chat',
+                                error: error.message
+                            }));
+                        }
+                    }
                 }
                 break;
             case 'RESTART_BOT':
