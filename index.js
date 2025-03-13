@@ -7,6 +7,7 @@ const commandManager = require('./commandManager');
 const logger = require('./logger');
 const { spawn } = require('child_process');
 const fedora = require('./fedora');
+const dbusService = require('./dbus-service');
 
 // Create WebSocket server
 const wss = new WebSocket.Server({ port: process.env.PORT || 8080 });
@@ -630,4 +631,41 @@ fedora.initialize().then(initialized => {
         // Send a notification that the bot has started
         fedora.sendNotification('MaxBot Started', 'The Twitch bot is now running', 'normal');
     }
-}); 
+});
+
+// Initialize D-Bus service
+dbusService.initialize().then(success => {
+  if (success) {
+    console.log('D-Bus service started successfully');
+  } else {
+    console.warn('D-Bus service failed to start');
+  }
+});
+
+// Forward D-Bus messages to WebSocket clients
+dbusService.on('message', ({ sender, message }) => {
+  broadcastToClients({
+    type: 'dbus-message',
+    data: { sender, message, timestamp: new Date().toISOString() }
+  });
+});
+
+dbusService.on('notification', ({ title, body, icon }) => {
+  broadcastToClients({
+    type: 'dbus-notification',
+    data: { title, body, icon, timestamp: new Date().toISOString() }
+  });
+});
+
+// Add handling for D-Bus related messages from clients
+function handleMessage(ws, message) {
+  // ... existing message handling code ...
+  
+  if (message.type === 'send-dbus-message') {
+    const { sender, content } = message.data;
+    dbusService.sendSignal(sender, content);
+    return;
+  }
+  
+  // ... rest of the message handling code ...
+} 
