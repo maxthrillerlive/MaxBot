@@ -9,6 +9,9 @@ const { spawn } = require('child_process');
 const fedora = require('./fedora');
 const dbusService = require('./dbus-service');
 
+// Add this line near the top of the file, with other global variables
+const startTime = Date.now();
+
 // Create WebSocket server
 const wss = new WebSocket.Server({ port: process.env.PORT || 8080 });
 
