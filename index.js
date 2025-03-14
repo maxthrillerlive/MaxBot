@@ -588,6 +588,147 @@ async function handleWebSocketMessage(ws, data) {
                     });
                 }
                 break;
+            // Add support for COMMAND message type from MaxBot-WebCP
+            case 'COMMAND':
+                if (data.command) {
+                    console.log(`Received COMMAND message: ${data.command}`);
+                    // Check if this is a command (starts with !) or a regular message
+                    if (data.command.startsWith('!')) {
+                        // This is a command, handle it normally
+                        const channel = data.channel || process.env.CHANNEL_NAME;
+                        const result = await commandManager.handleCommand(
+                            client,
+                            channel,
+                            { username: process.env.BOT_USERNAME },
+                            data.command
+                        );
+                        ws.send(JSON.stringify({
+                            type: 'COMMAND_RESULT',
+                            success: result,
+                            command: data.command
+                        }));
+                    } else {
+                        // This is a regular chat message, send it directly
+                        try {
+                            const channel = data.channel || process.env.CHANNEL_NAME;
+                            await client.say(channel, data.command);
+                            ws.send(JSON.stringify({
+                                type: 'COMMAND_RESULT',
+                                success: true,
+                                command: 'chat',
+                                message: data.command
+                            }));
+                        } catch (error) {
+                            console.error('Error sending chat message:', error);
+                            ws.send(JSON.stringify({
+                                type: 'COMMAND_RESULT',
+                                success: false,
+                                command: 'chat',
+                                error: error.message
+                            }));
+                        }
+                    }
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'ERROR',
+                        error: 'Missing command for COMMAND message'
+                    }));
+                }
+                break;
+            // Add support for CHAT message type from MaxBot-WebCP
+            case 'CHAT':
+                if (data.message) {
+                    console.log(`Received CHAT message: ${data.message}`);
+                    try {
+                        const channel = data.channel || process.env.CHANNEL_NAME;
+                        // Check if this is a command (starts with !)
+                        if (data.message.startsWith('!')) {
+                            // This is a command, let the command manager handle it
+                            console.log(`[CONTROL] Treating message as command: ${data.message}`);
+                            
+                            const result = await commandManager.handleCommand(
+                                client,
+                                channel,
+                                { username: process.env.BOT_USERNAME },
+                                data.message
+                            );
+                            
+                            ws.send(JSON.stringify({
+                                type: 'COMMAND_RESULT',
+                                success: result,
+                                command: data.message
+                            }));
+                        } else {
+                            // This is a regular chat message, just send it
+                            console.log(`[CONTROL] Sending chat message: ${data.message}`);
+                            
+                            await client.say(channel, data.message);
+                            
+                            ws.send(JSON.stringify({
+                                type: 'COMMAND_RESULT',
+                                success: true,
+                                command: 'chat',
+                                message: data.message
+                            }));
+                        }
+                    } catch (error) {
+                        console.error('Error handling chat message:', error);
+                        ws.send(JSON.stringify({
+                            type: 'ERROR',
+                            error: 'Failed to process message: ' + error.message
+                        }));
+                    }
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'ERROR',
+                        error: 'Missing message for CHAT message'
+                    }));
+                }
+                break;
+            // Add support for ADMIN_COMMAND message type from MaxBot-WebCP
+            case 'ADMIN_COMMAND':
+                console.log(`Received ADMIN_COMMAND: ${data.command}`);
+                if (data.command === 'RESTART') {
+                    // Send acknowledgment to the client
+                    ws.send(JSON.stringify({
+                        type: 'CONNECTION_STATE',
+                        state: 'restarting'
+                    }));
+                    
+                    // Broadcast to all clients
+                    broadcastToAll({
+                        type: 'CONNECTION_STATE',
+                        state: 'restarting'
+                    });
+                    
+                    console.log('Received restart command from control panel');
+                    
+                    // Call the restart function
+                    await handleRestart();
+                } else if (data.command === 'SHUTDOWN') {
+                    // Send acknowledgment to the client
+                    ws.send(JSON.stringify({
+                        type: 'CONNECTION_STATE',
+                        state: 'shutting_down'
+                    }));
+                    
+                    // Broadcast to all clients
+                    broadcastToAll({
+                        type: 'CONNECTION_STATE',
+                        state: 'shutting_down'
+                    });
+                    
+                    console.log('Received shutdown command from control panel');
+                    
+                    // Call the exit function
+                    await handleExit();
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'ERROR',
+                        error: `Unknown admin command: ${data.command}`
+                    }));
+                }
+                break;
             case 'EXECUTE_COMMAND':
                 if (data.command && data.channel) {
                     // Check if this is a command (starts with !) or a regular message
@@ -624,93 +765,6 @@ async function handleWebSocketMessage(ws, data) {
                             }));
                         }
                     }
-                }
-                break;
-            case 'RESTART_BOT':
-                // Send acknowledgment to the client
-                ws.send(JSON.stringify({
-                    type: 'CONNECTION_STATE',
-                    state: 'restarting'
-                }));
-                
-                // Broadcast to all clients
-                broadcastToAll({
-                    type: 'CONNECTION_STATE',
-                    state: 'restarting'
-                });
-                
-                console.log('Received restart command from control panel');
-                
-                // Call the restart function
-                await handleRestart();
-                break;
-            case 'EXIT_BOT':
-                // Send acknowledgment to the client
-                ws.send(JSON.stringify({
-                    type: 'CONNECTION_STATE',
-                    state: 'shutting_down'
-                }));
-                
-                // Broadcast to all clients
-                broadcastToAll({
-                    type: 'CONNECTION_STATE',
-                    state: 'shutting_down'
-                });
-                
-                console.log('Received shutdown command from control panel');
-                
-                // Call the exit function
-                await handleExit();
-                break;
-            case 'CHAT_COMMAND':
-                if (data.message && data.channel) {
-                    try {
-                        // Check if this is a command (starts with !)
-                        if (data.message.startsWith('!')) {
-                            // This is a command, let the command manager handle it
-                            console.log(`[CONTROL] Treating message as command: ${data.message}`);
-                            
-                            // We don't need to broadcast here - the command response will be 
-                            // captured by our client.say wrapper
-                            
-                            const result = await commandManager.handleCommand(
-                                client,
-                                data.channel,
-                                { username: process.env.BOT_USERNAME },
-                                data.message
-                            );
-                            
-                            ws.send(JSON.stringify({
-                                type: 'COMMAND_RESULT',
-                                success: result,
-                                command: data.message
-                            }));
-                        } else {
-                            // This is a regular chat message, just send it
-                            console.log(`[CONTROL] Sending chat message: ${data.message}`);
-                            
-                            // The message will be broadcast by our client.say wrapper
-                            await client.say(data.channel, data.message);
-                            
-                            ws.send(JSON.stringify({
-                                type: 'COMMAND_RESULT',
-                                success: true,
-                                command: 'chat',
-                                message: data.message
-                            }));
-                        }
-                    } catch (error) {
-                        console.error('Error handling chat message/command:', error);
-                        ws.send(JSON.stringify({
-                            type: 'ERROR',
-                            error: 'Failed to process message: ' + error.message
-                        }));
-                    }
-                } else {
-                    ws.send(JSON.stringify({
-                        type: 'ERROR',
-                        error: 'Missing message or channel for CHAT_COMMAND'
-                    }));
                 }
                 break;
             default:
