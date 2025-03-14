@@ -12,6 +12,19 @@ const logger = require('./logger');
 let client = null;
 let connectionCheckInterval = null;
 let isShuttingDown = false;
+let lastPingReceived = 0; // Track when we last received a PING from Twitch
+let lastPongReceived = 0; // Track when we last received a PONG from Twitch
+const PING_TIMEOUT = 120000; // Consider connection dead if no PING received in 2 minutes
+
+// Add a manual reconnection flag to prevent multiple reconnection attempts
+let reconnectionInProgress = false;
+// Add a counter for consecutive reconnection attempts
+let consecutiveReconnectionAttempts = 0;
+// Maximum number of consecutive reconnection attempts before backing off
+const MAX_CONSECUTIVE_RECONNECTIONS = 5;
+// Backoff time in milliseconds (starts at 5 seconds, increases with consecutive failures)
+let reconnectionBackoffTime = 5000;
+
 let eventHandlers = {
     onConnecting: null,
     onConnected: null,
@@ -104,6 +117,9 @@ function setupEventHandlers() {
     // Handle connected event
     client.on('connected', (address, port) => {
         console.log(`Connected to Twitch at ${address}:${port}`);
+        // Update ping timestamp when we connect
+        lastPingReceived = Date.now();
+        lastPongReceived = Date.now();
         if (eventHandlers.onConnected) {
             eventHandlers.onConnected(address, port);
         }
@@ -129,6 +145,8 @@ function setupEventHandlers() {
     // Handle PING messages from the server
     client.on('ping', () => {
         console.log('Received PING from Twitch IRC server, responding with PONG');
+        // Update ping timestamp
+        lastPingReceived = Date.now();
         // The tmi.js library should automatically respond with a PONG
         // But let's explicitly send a PONG to be sure
         try {
@@ -145,6 +163,8 @@ function setupEventHandlers() {
     // Handle PONG responses to our PINGs
     client.on('pong', () => {
         console.log('Received PONG response from Twitch IRC server');
+        // Update pong timestamp
+        lastPongReceived = Date.now();
     });
     
     // Add a raw message handler to catch and log all messages
@@ -152,6 +172,8 @@ function setupEventHandlers() {
         // Handle PING messages explicitly to ensure we respond
         if (message && message.command === 'PING') {
             console.log('Received raw PING message from server, sending PONG');
+            // Update ping timestamp
+            lastPingReceived = Date.now();
             try {
                 if (client && client._connection && client._connection.ws && 
                     client._connection.ws.readyState === 1) {
@@ -167,6 +189,8 @@ function setupEventHandlers() {
         // Log PONG messages
         else if (message && message.command === 'PONG') {
             console.log('Received raw PONG message from server - connection is active');
+            // Update pong timestamp
+            lastPongReceived = Date.now();
         }
     });
 }
@@ -199,6 +223,10 @@ async function connect() {
         await client.connect();
         console.log('Bot connected successfully.');
         
+        // Initialize ping timestamp when we connect
+        lastPingReceived = Date.now();
+        lastPongReceived = Date.now();
+        
         // We're now relying on Twitch's own PING messages to keep the connection alive
         console.log('Relying on Twitch server PINGs to maintain connection');
         
@@ -224,27 +252,87 @@ async function checkTwitchConnection() {
     }
     
     try {
-        // Check if the client's socket is available
+        // Check if we've received a PING recently
+        const pingActive = (Date.now() - lastPingReceived) < PING_TIMEOUT;
+        const pongActive = (Date.now() - lastPongReceived) < PING_TIMEOUT;
+        const recentActivity = pingActive || pongActive;
+        
+        // If we have recent PING/PONG activity, the connection is active
+        if (recentActivity) {
+            console.log('Checking Twitch connection status: Connected (based on recent PING/PONG activity)',
+                'Time since last PING:', (Date.now() - lastPingReceived) / 1000, 'seconds',
+                'Time since last PONG:', (Date.now() - lastPongReceived) / 1000, 'seconds');
+            return true;
+        }
+        
+        // Check if the client's socket is available as a fallback
+        let isConnected = false;
+        let socketState = -1;
+        let socketStateText = 'UNKNOWN';
+        
         if (client._connection && client._connection.ws) {
-            const socketState = client._connection.ws.readyState;
-            
-            // WebSocket.OPEN = 1
-            const isConnected = socketState === 1;
-            
-            // Log the current connection state
-            console.log('Checking Twitch connection status:', 
-                isConnected ? 'Connected' : 'Disconnected', 
-                'WebSocket state:', 
+            socketState = client._connection.ws.readyState;
+            socketStateText = 
                 socketState === 0 ? 'CONNECTING' : 
                 socketState === 1 ? 'OPEN' : 
                 socketState === 2 ? 'CLOSING' : 
-                socketState === 3 ? 'CLOSED' : 'UNKNOWN');
+                socketState === 3 ? 'CLOSED' : 'UNKNOWN';
             
-            return isConnected;
+            // WebSocket.OPEN = 1
+            isConnected = socketState === 1;
+            
+            console.log('Checking Twitch connection status:', 
+                isConnected ? 'Connected' : 'Disconnected', 
+                'WebSocket state:', socketStateText);
         } else {
-            console.log('WebSocket connection not available');
+            console.log('WebSocket connection not available, no recent PING/PONG activity');
+        }
+        
+        // If we're not connected and there's no recent activity, attempt to reconnect
+        if (!isConnected && !recentActivity && !reconnectionInProgress) {
+            console.log('Connection appears to be down, initiating reconnection...');
+            
+            // Only attempt reconnection if we're not already in the process
+            // and we haven't exceeded our consecutive reconnection limit
+            if (consecutiveReconnectionAttempts < MAX_CONSECUTIVE_RECONNECTIONS) {
+                // Schedule reconnection with exponential backoff
+                setTimeout(() => {
+                    handleTwitchReconnection()
+                        .then(success => {
+                            if (success) {
+                                console.log('Reconnection successful');
+                                consecutiveReconnectionAttempts = 0;
+                                reconnectionBackoffTime = 5000; // Reset backoff time
+                            } else {
+                                console.log('Reconnection failed');
+                                consecutiveReconnectionAttempts++;
+                                reconnectionBackoffTime *= 2; // Exponential backoff
+                            }
+                            reconnectionInProgress = false;
+                        })
+                        .catch(error => {
+                            console.error('Error during reconnection:', error);
+                            consecutiveReconnectionAttempts++;
+                            reconnectionBackoffTime *= 2; // Exponential backoff
+                            reconnectionInProgress = false;
+                        });
+                }, reconnectionBackoffTime);
+                
+                reconnectionInProgress = true;
+                console.log(`Scheduled reconnection attempt in ${reconnectionBackoffTime/1000} seconds`);
+            } else {
+                console.log(`Exceeded maximum consecutive reconnection attempts (${MAX_CONSECUTIVE_RECONNECTIONS}), backing off`);
+                // Reset after a longer delay
+                setTimeout(() => {
+                    consecutiveReconnectionAttempts = 0;
+                    reconnectionBackoffTime = 5000;
+                }, 60000); // Wait 1 minute before resetting
+            }
+            
             return false;
         }
+        
+        return isConnected || recentActivity;
     } catch (error) {
         console.error('Error checking Twitch connection:', error);
         return false;
@@ -256,8 +344,10 @@ async function checkTwitchConnection() {
  * @returns {Promise<boolean>} - Resolves to true if connected, false otherwise
  */
 function checkActiveTwitchConnections() {
-    // Connection check disabled
-    return Promise.resolve(true);
+    // Check if we've received a PING recently
+    const pingActive = (Date.now() - lastPingReceived) < PING_TIMEOUT;
+    const pongActive = (Date.now() - lastPongReceived) < PING_TIMEOUT;
+    return Promise.resolve(pingActive || pongActive);
 }
 
 /**
@@ -307,6 +397,10 @@ async function handleTwitchReconnection() {
         await client.connect();
         console.log('Successfully reconnected to Twitch');
         
+        // Reset ping timestamps
+        lastPingReceived = Date.now();
+        lastPongReceived = Date.now();
+        
         return true;
     } catch (error) {
         console.error('Error during reconnection:', error);
@@ -318,10 +412,21 @@ async function handleTwitchReconnection() {
  * Start periodic connection checking
  * @param {number} interval - Interval in milliseconds between checks
  */
-function startPeriodicConnectionCheck(interval = 120000) { // Default to 2 minutes
-    // Connection check disabled - this is now a no-op function
-    console.log('Periodic connection check is disabled');
-    return null;
+function startPeriodicConnectionCheck(interval = 60000) { // Default to 1 minute
+    // Re-enable connection checking
+    console.log(`Starting periodic connection check every ${interval/1000} seconds`);
+    
+    // Clear any existing interval
+    stopPeriodicConnectionCheck();
+    
+    // Set up new interval
+    connectionCheckInterval = setInterval(async () => {
+        console.log('Performing periodic connection check...');
+        const isConnected = await checkTwitchConnection();
+        console.log('Connection check result:', isConnected ? 'Connected' : 'Disconnected');
+    }, interval);
+    
+    return connectionCheckInterval;
 }
 
 /**
@@ -371,15 +476,31 @@ function getConnectionDetails() {
             readyState: 'No client',
             readyStateText: 'No client',
             channels: [],
-            lastConnectionCheck: Date.now()
+            lastConnectionCheck: Date.now(),
+            lastPingReceived: lastPingReceived,
+            lastPongReceived: lastPongReceived,
+            pingActive: (Date.now() - lastPingReceived) < PING_TIMEOUT,
+            pongActive: (Date.now() - lastPongReceived) < PING_TIMEOUT
         };
     }
     
-    // Check the WebSocket state directly
+    // Check if we've received a PING recently
+    const pingActive = (Date.now() - lastPingReceived) < PING_TIMEOUT;
+    const pongActive = (Date.now() - lastPongReceived) < PING_TIMEOUT;
+    const recentActivity = pingActive || pongActive;
+    
+    // Default to CLOSED state
     let socketState = 3; // Default to CLOSED
     let socketStateText = 'CLOSED';
     
-    if (client._connection && client._connection.ws) {
+    // If we have recent PING/PONG activity, consider the connection OPEN
+    if (recentActivity) {
+        socketState = 1; // WebSocket.OPEN
+        socketStateText = 'OPEN (inferred from PING/PONG)';
+        console.log('Current WebSocket state:', socketStateText);
+    }
+    // Otherwise check the WebSocket state directly if available
+    else if (client._connection && client._connection.ws) {
         socketState = client._connection.ws.readyState;
         socketStateText = 
             socketState === 0 ? 'CONNECTING' : 
@@ -389,7 +510,7 @@ function getConnectionDetails() {
         
         console.log('Current WebSocket state:', socketStateText);
     } else {
-        console.log('WebSocket connection not available');
+        console.log('Connection object not available, but checking PING/PONG activity');
     }
     
     // Get channels safely
@@ -404,7 +525,13 @@ function getConnectionDetails() {
         readyState: socketState,
         readyStateText: socketStateText,
         channels: channels,
-        lastConnectionCheck: Date.now()
+        lastConnectionCheck: Date.now(),
+        lastPingReceived: lastPingReceived,
+        lastPongReceived: lastPongReceived,
+        pingActive: pingActive,
+        pongActive: pongActive,
+        timeSinceLastPing: Date.now() - lastPingReceived,
+        timeSinceLastPong: Date.now() - lastPongReceived
     };
 }
 
@@ -417,13 +544,24 @@ function getConnectionState() {
         return 'Disconnected';
     }
     
-    // Check the WebSocket state directly
+    // Check if we've received a PING recently
+    const pingActive = (Date.now() - lastPingReceived) < PING_TIMEOUT;
+    const pongActive = (Date.now() - lastPongReceived) < PING_TIMEOUT;
+    const recentActivity = pingActive || pongActive;
+    
+    // If we have recent PING/PONG activity, consider the connection active
+    if (recentActivity) {
+        return 'Connected';
+    }
+    
+    // Check the WebSocket state directly as a fallback
     if (client._connection && client._connection.ws) {
         const socketState = client._connection.ws.readyState;
         // WebSocket.OPEN = 1
-        return socketState === 1 ? 'Connected' : 'Disconnected';
+        return (socketState === 1) ? 'Connected' : 'Disconnected';
     }
     
+    // If no WebSocket and no recent activity, consider disconnected
     return 'Disconnected';
 }
 

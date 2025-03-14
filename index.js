@@ -850,8 +850,8 @@ twitchAuth.connect()
         commandManager.reloadAllCommands();
         console.log('Bot connected successfully.');
         
-        // No need to start periodic connection checking anymore
-        // twitchAuth.startPeriodicConnectionCheck();
+        // Start periodic connection checking
+        twitchAuth.startPeriodicConnectionCheck(60000); // Check every minute
     })
     .catch(err => {
         console.error('Connection failed:', err);
