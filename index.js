@@ -1,11 +1,11 @@
 require('dotenv').config();
-const tmi = require('tmi.js');
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const commandManager = require('./commandManager');
 const logger = require('./logger');
 const { spawn } = require('child_process');
+const twitchAuth = require('./twitch-auth'); // Import the new Twitch auth module
 
 // Add this line to define startTime
 const startTime = Date.now();
@@ -109,33 +109,8 @@ if (!process.env.CHANNEL_NAME) {
     process.exit(1);
 }
 
-// Define configuration options
-const opts = {
-    options: { 
-        debug: true,
-        messagesLogLevel: "info",
-        skipMembership: true,  // Skip membership events
-        skipUpdatingEmotesets: true  // Skip updating emote sets
-    },
-    connection: {
-        reconnect: true,
-        secure: true,
-        timeout: 30000,
-        reconnectDecay: 1.4,
-        reconnectInterval: 1000,
-        maxReconnectAttempts: 2
-    },
-    channels: [
-        process.env.CHANNEL_NAME
-    ],
-    identity: {
-        username: process.env.BOT_USERNAME,
-        password: process.env.CLIENT_TOKEN
-    }
-};
-
-// Create a client with our options
-const client = new tmi.client(opts);
+// Initialize the Twitch client using our new module
+const client = twitchAuth.initializeTwitchClient();
 
 // After creating the client but before using it
 const originalSay = client.say;
@@ -316,6 +291,208 @@ function sendCommandList(ws) {
     }));
 }
 
+// Add a function to periodically check the Twitch connection status
+async function checkTwitchConnection() {
+    // Connection check disabled - always return true
+    console.log('Connection check disabled, assuming connected');
+    return true;
+    
+    // Original code commented out
+    /*
+    if (!client) {
+        console.log('Client not initialized, cannot check Twitch connection');
+        return false;
+    }
+    
+    try {
+        // Check if we have an established connection to Twitch
+        const isConnected = client.readyState === 'OPEN' || client.readyState === 1;
+        
+        // Log the current connection state
+        console.log('Checking Twitch connection status:', 
+            isConnected ? 'Connected' : 'Disconnected', 
+            'ReadyState:', client.readyState);
+        
+        // If we think we're connected, verify by checking the actual network connection
+        if (isConnected) {
+            // Check if we have an active connection to any of the Twitch IRC servers
+            const twitchConnections = await checkActiveTwitchConnections();
+            console.log('Active Twitch connections:', twitchConnections ? 'Yes' : 'No');
+            
+            if (!twitchConnections) {
+                console.log('No active Twitch connections found despite client reporting connected state');
+                // Force reconnection if needed
+                await handleTwitchReconnection();
+                return false;
+            }
+            
+            // If we have active connections, update the connection state
+            broadcastToAll({
+                type: 'CONNECTION_STATE',
+                state: 'Connected',
+                timestamp: Date.now()
+            });
+            
+            return true;
+        } else {
+            // If we're not connected according to the client, try to reconnect
+            console.log('Client reports disconnected state, attempting to reconnect');
+            await handleTwitchReconnection();
+            return false;
+        }
+    } catch (error) {
+        console.error('Error checking Twitch connection:', error);
+        return false;
+    }
+    */
+}
+
+// Check for active connections to Twitch IRC servers using /query command
+function checkActiveTwitchConnections() {
+    // Connection check disabled - always return true
+    return Promise.resolve(true);
+    
+    // Original code commented out
+    /*
+    try {
+        if (!client || (client.readyState !== 'OPEN' && client.readyState !== 1)) {
+            console.log('Client not connected, cannot perform connection check');
+            return false;
+        }
+        
+        // Use the PRIVMSG command to send a message to the bot itself
+        // This is a standard IRC command that will work with Twitch's IRC interface
+        const botUsername = process.env.BOT_USERNAME;
+        console.log(`Sending PRIVMSG to ${botUsername} to verify Twitch connection`);
+        
+        // We'll use a promise to handle the async nature of this check
+        return new Promise((resolve) => {
+            // Set up a temporary handler for the notice event
+            const noticeHandler = (channel, msgid, message) => {
+                console.log(`Received notice: ${msgid} - ${message}`);
+                
+                // If we get a "not connected" notice, we're not connected
+                if (message.includes('Not connected to server')) {
+                    console.log('Received "Not connected to server" notice, connection is down');
+                    client.removeListener('notice', noticeHandler);
+                    resolve(false);
+                }
+            };
+            
+            // Set up a temporary handler for any error events
+            const errorHandler = (error) => {
+                console.log(`Received error during connection check: ${error}`);
+                client.removeListener('notice', noticeHandler);
+                client.removeListener('error', errorHandler);
+                resolve(false);
+            };
+            
+            // Set up a handler for message responses (including our own message)
+            const messageHandler = (channel, tags, message, self) => {
+                // If we receive any message, including our own test message, we're connected
+                console.log(`Received message during connection check: ${message} (self: ${self})`);
+                client.removeListener('notice', noticeHandler);
+                client.removeListener('error', errorHandler);
+                client.removeListener('message', messageHandler);
+                resolve(true);
+            };
+            
+            // Add the temporary handlers
+            client.on('notice', noticeHandler);
+            client.on('error', errorHandler);
+            client.on('message', messageHandler);
+            
+            // Send the PRIVMSG command
+            // Format: PRIVMSG <target> :<message>
+            const connectionTestMessage = `Connection test ${Date.now()}`;
+            client.raw(`PRIVMSG ${botUsername} :${connectionTestMessage}`);
+            
+            // Set a timeout to resolve the promise if we don't get a response
+            setTimeout(() => {
+                console.log('No response to PRIVMSG command, assuming connection is down');
+                client.removeListener('notice', noticeHandler);
+                client.removeListener('error', errorHandler);
+                client.removeListener('message', messageHandler);
+                resolve(false);
+            }, 5000);
+        });
+    } catch (error) {
+        console.error('Error checking active Twitch connections:', error);
+        return false;
+    }
+    */
+}
+
+// Handle reconnection to Twitch if needed
+async function handleTwitchReconnection() {
+    console.log('Attempting to reconnect to Twitch...');
+    
+    try {
+        // Disconnect first if we're in a bad state
+        await client.disconnect();
+        console.log('Successfully disconnected, now reconnecting...');
+        
+        // Wait a moment before reconnecting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Reconnect
+        await client.connect();
+        console.log('Successfully reconnected to Twitch');
+        
+        // Broadcast the updated connection state
+        broadcastToAll({
+            type: 'CONNECTION_STATE',
+            state: 'Connected',
+            timestamp: Date.now()
+        });
+        
+        // Update all clients with the new status
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                try {
+                    sendStatus(client);
+                } catch (error) {
+                    console.error('Error sending status after reconnect:', error);
+                }
+            }
+        });
+        
+        return true;
+    } catch (error) {
+        console.error('Error during reconnection:', error);
+        
+        // Broadcast the error
+        broadcastToAll({
+            type: 'ERROR',
+            error: 'Failed to reconnect to Twitch: ' + error.message,
+            timestamp: Date.now()
+        });
+        
+        return false;
+    }
+}
+
+// Set up periodic connection check (every minute)
+// Disabled - we don't want to check the connection periodically
+/*
+const connectionCheckInterval = setInterval(() => {
+    if (isShuttingDown) {
+        clearInterval(connectionCheckInterval);
+        return;
+    }
+    
+    // Use async/await pattern with error handling
+    (async () => {
+        try {
+            await checkTwitchConnection();
+        } catch (error) {
+            console.error('Error during periodic connection check:', error);
+        }
+    })();
+}, 60000); // Check every minute
+*/
+
+// Update the sendStatus function to use the connection check
 function sendStatus(ws) {
     if (ws.readyState === WebSocket.OPEN) {
         try {
@@ -332,14 +509,21 @@ function sendStatus(ws) {
             // Calculate uptime
             const uptime = Math.floor((Date.now() - startTime) / 1000);
             
+            // Get connection details from the Twitch auth module
+            const connectionDetails = twitchAuth.getConnectionDetails();
+            const twitchState = twitchAuth.getConnectionState();
+            
+            console.log('Current Twitch connection state:', twitchState, 'ReadyState:', connectionDetails.readyStateText);
+            
             // Create a more comprehensive status object
             const status = {
                 type: 'STATUS',
                 data: {
-                    connectionState: client && client.readyState === 'OPEN' ? 'Connected' : 'Disconnected',
+                    connectionState: twitchState,
+                    connectionDetails: connectionDetails,
                     username: process.env.BOT_USERNAME,
                     processId: process.pid,
-                    channels: client ? client.getChannels() : [],
+                    channels: connectionDetails.channels,
                     uptime: uptime,
                     memory: process.memoryUsage(),
                     commands: commands,
@@ -353,7 +537,9 @@ function sendStatus(ws) {
             // Also send a separate connection state message for clarity
             ws.send(JSON.stringify({
                 type: 'CONNECTION_STATE',
-                state: client && client.readyState === 'OPEN' ? 'Connected' : 'Disconnected'
+                state: twitchState,
+                details: connectionDetails,
+                timestamp: Date.now()
             }));
         } catch (error) {
             console.error('Error sending status:', error);
@@ -539,47 +725,80 @@ async function handleWebSocketMessage(ws, data) {
     }
 }
 
-// Add chat message broadcasting
-client.on('message', (channel, tags, message, self) => {
-    if (self) return;
+// Register event handlers for Twitch client events
+twitchAuth.registerEventHandlers({
+    onConnecting: () => {
+        console.log('Connecting to Twitch...');
+        broadcastToAll({
+            type: 'CONNECTION_STATE',
+            state: 'connecting',
+            timestamp: Date.now()
+        });
+    },
+    onConnected: (address, port) => {
+        console.log(`Connected to Twitch at ${address}:${port}`);
+        broadcastToAll({
+            type: 'CONNECTION_STATE',
+            state: 'Connected',
+            address: address,
+            port: port,
+            timestamp: Date.now()
+        });
+        
+        // Also send a full status update to all clients
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                try {
+                    sendStatus(client);
+                } catch (error) {
+                    console.error('Error sending status after connect:', error);
+                }
+            }
+        });
+    },
+    onDisconnected: (reason) => {
+        logger.error(`Disconnected from Twitch: ${reason}`);
+        broadcastToAll({
+            type: 'CONNECTION_STATE',
+            state: 'Disconnected',
+            reason: reason,
+            timestamp: Date.now()
+        });
+        
+        // Also send a full status update to all clients
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                try {
+                    sendStatus(client);
+                } catch (error) {
+                    console.error('Error sending status after disconnect:', error);
+                }
+            }
+        });
+    },
+    onMessage: (channel, tags, message, self) => {
+        // Handle message event
+        if (self) return;
 
-    // Log chat message
-    logger.chat(tags.username, message, channel);
+        // Log chat message
+        logger.chat(tags.username, message, channel);
 
-    broadcastToAll({
-        type: 'CHAT_MESSAGE',
-        data: {
-            channel,
-            username: tags.username,
-            message,
-            badges: tags.badges,
-            timestamp: Date.now(),
-            id: tags.id
-        }
-    });
-});
-
-// Broadcast connection state changes
-client.on('connecting', () => {
-    broadcastToAll({
-        type: 'CONNECTION_STATE',
-        state: 'connecting'
-    });
-});
-
-client.on('connected', () => {
-    broadcastToAll({
-        type: 'CONNECTION_STATE',
-        state: 'connected'
-    });
-});
-
-client.on('disconnected', (reason) => {
-    logger.error(`Disconnected: ${reason}`);
-    broadcastToAll({
-        type: 'CONNECTION_STATE',
-        state: 'disconnected'
-    });
+        // Broadcast to all clients
+        broadcastToAll({
+            type: 'CHAT_MESSAGE',
+            data: {
+                channel,
+                username: tags.username,
+                message,
+                badges: tags.badges,
+                timestamp: Date.now(),
+                id: tags.id
+            }
+        });
+        
+        // Also process as a command if needed
+        onMessageHandler(channel, tags, message, self);
+    }
 });
 
 // Graceful shutdown handling
@@ -591,13 +810,23 @@ async function shutdown(signal) {
 
     console.log(`\nReceived ${signal}. Disconnecting bot...`);
     try {
+        // Set the shutdown flag in the Twitch auth module
+        twitchAuth.setShutdownFlag(true);
+        
+        // No need to stop periodic connection checking anymore
+        // twitchAuth.stopPeriodicConnectionCheck();
+        
         // Save command states before disconnecting
         commandManager.saveState();
+        
         // Clean up the lock file
         cleanupLockFile();
+        
         // Disconnect from Twitch
-        await client.disconnect();
+        await twitchAuth.disconnect();
+        
         console.log('Bot disconnected successfully.');
+        
         // Force exit after a short delay if normal exit doesn't work
         setTimeout(() => {
             console.log('Force exiting...');
@@ -615,11 +844,14 @@ console.log('Bot username:', process.env.BOT_USERNAME);
 console.log('Channel:', process.env.CHANNEL_NAME);
 console.log('\nTo safely stop the bot, press Ctrl+C');
 
-client.connect()
+twitchAuth.connect()
     .then(() => {
         // Force reload commands to ensure they're all loaded
         commandManager.reloadAllCommands();
         console.log('Bot connected successfully.');
+        
+        // No need to start periodic connection checking anymore
+        // twitchAuth.startPeriodicConnectionCheck();
     })
     .catch(err => {
         console.error('Connection failed:', err);
@@ -628,10 +860,6 @@ client.connect()
             console.error('You can get a new token by running: npm run auth');
         }
     });
-
-// Register event handlers
-client.on('message', onMessageHandler);
-client.on('connected', onConnectedHandler);
 
 // Message deduplication cache with message IDs
 const messageCache = new Map();
@@ -736,13 +964,6 @@ async function onMessageHandler(target, context, msg, self) {
         console.error('Error handling command:', error);
         await client.say(target, `@${context.username} Sorry, there was an error processing your command.`);
     }
-}
-
-// Called every time the bot connects to Twitch chat
-function onConnectedHandler(addr, port) {
-    logger.info(`Connected to ${addr}:${port}`);
-    const commands = commandManager.listCommands();
-    console.log('Available commands:', commands.map(cmd => ({ name: cmd.name, trigger: cmd.trigger, enabled: cmd.enabled })));
 }
 
 async function handleExit() {

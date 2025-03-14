@@ -54,9 +54,10 @@ npm run dev
 
 ```
 ├── index.js           # Main bot entry point
-├── server.js          # WebSocket server
+├── twitch-auth.js     # Twitch authentication module
 ├── auth-server.js     # Authentication server
 ├── commandManager.js  # Command handling system
+├── logger.js          # Logging utility
 └── commands/         # Bot commands
     ├── restart.js    # Example commands
     └── ...
