@@ -1118,63 +1118,7 @@ twitchAuth.registerEventHandlers({
             }
         });
         
-        // Handle commands - DIRECT EXECUTION
-        if (message.startsWith('!')) {
-            console.log('=== Command Processing Start ===');
-            console.log('Command message:', message);
-            console.log('Channel:', channel);
-            console.log('User:', tags.username);
-            
-            logger.info(`[${channel}] <${tags.username}>: ${message}`, {
-                channel: channel,
-                chat: true,
-                username: tags.username
-            });
-            
-            try {
-                // Create a direct reference to the client's say method
-                const directSay = async (target, msg) => {
-                    console.log(`Directly sending message to ${target}: ${msg}`);
-                    return await client.say(target, msg);
-                };
-                
-                // Create a simple client object with just the say method
-                const simpleClient = {
-                    say: directSay
-                };
-                
-                // Execute the command directly
-                console.log('Executing command directly...');
-                
-                // Extract command name
-                const commandName = message.split(' ')[0].substring(1).toLowerCase();
-                console.log('Command name:', commandName);
-                
-                // Get the command from commandManager
-                const commands = commandManager.getCommands();
-                console.log('Available commands:', commands);
-                
-                // Find the command
-                const command = commands.find(([name, cmd]) => name === commandName);
-                
-                if (command) {
-                    console.log('Found command:', command[0]);
-                    try {
-                        // Execute the command directly
-                        const result = await command[1].execute(simpleClient, channel, tags, message);
-                        console.log('Command execution result:', result);
-                    } catch (error) {
-                        console.error('Error executing command directly:', error);
-                    }
-                } else {
-                    console.log('Command not found:', commandName);
-                }
-            } catch (error) {
-                logger.error(`Error handling command: ${error.message}`);
-                console.error('Full error:', error);
-            }
-            console.log('=== Command Processing End ===');
-        }
+        // Skip command processing here since we're handling it in the direct handler
         
         // Process message through plugin manager
         await pluginManager.processIncomingMessage({

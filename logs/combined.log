@@ -3439,3 +3439,246 @@ Available settings:
 2025-03-15 11:13:51 [INFO]: [LibreTranslate] Sending response: hola 󠀀 (🇪🇸 → 🇺🇸 hello)
 2025-03-15 11:16:14 [ERROR]: Disconnected from Twitch: Connection closed.
 2025-03-15 11:16:14 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 11:25:56 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-15 11:25:56 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 11:25:56 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 11:25:56 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 11:25:56 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 11:25:56 [INFO]: [PluginManager] Loading plugins...
+2025-03-15 11:25:56 [INFO]: [PluginManager] Plugins directory found at: D:\MaxBotWS\MaxBot\plugins
+2025-03-15 11:25:56 [INFO]: [PluginManager] Found 2 plugin files: chat.js, libretranslate.js
+2025-03-15 11:25:56 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\chat.js
+2025-03-15 11:25:56 [WARN]: [PluginManager] Invalid plugin format: chat.js
+2025-03-15 11:25:56 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\libretranslate.js
+2025-03-15 11:25:57 [INFO]: [PluginManager] Plugin loaded with name: libretranslate
+2025-03-15 11:25:57 [INFO]: [PluginManager] Plugin libretranslate enabled from configuration
+2025-03-15 11:25:57 [INFO]: [PluginManager] Loaded plugin: libretranslate v1.0.0
+2025-03-15 11:25:57 [INFO]: [PluginManager] Successfully loaded 1 plugins: libretranslate
+2025-03-15 11:25:57 [INFO]: [PluginManager] Initializing plugins...
+2025-03-15 11:25:57 [INFO]: [PluginManager] Plugins to initialize: libretranslate
+2025-03-15 11:25:57 [INFO]: [PluginManager] Initializing plugin: libretranslate
+2025-03-15 11:25:57 [INFO]: [LibreTranslate] Plugin initializing...
+2025-03-15 11:25:57 [INFO]: [LibreTranslate] Message handler set up successfully
+2025-03-15 11:25:57 [INFO]: [LibreTranslate] Plugin initialized successfully
+2025-03-15 11:25:57 [INFO]: [PluginManager] Initialized plugin: libretranslate
+2025-03-15 11:25:57 [INFO]: [PluginManager] Registered command: translate from plugin: libretranslate
+2025-03-15 11:25:57 [INFO]: [PluginManager] Registered command: tr from plugin: libretranslate
+2025-03-15 11:25:57 [INFO]: [PluginManager] Registered command: trlang from plugin: libretranslate
+2025-03-15 11:25:57 [INFO]: [PluginManager] Registered command: trconfig from plugin: libretranslate
+2025-03-15 11:25:57 [INFO]: [PluginManager] Plugin initialization complete. Enabled plugins: libretranslate
+2025-03-15 11:25:57 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 11:25:57 [INFO]: Available plugins: libretranslate
+2025-03-15 11:25:57 [INFO]: [LibreTranslate] Loaded 46 languages
+2025-03-15 11:26:08 [INFO]: [LibreTranslate] translateAll set to: true
+2025-03-15 11:26:15 [INFO]: [LibreTranslate] Processing message for translation: hola
+2025-03-15 11:26:15 [INFO]: [LibreTranslate] Processing message for translation: hola
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Detection response: [{"confidence":30,"language":"es"}]
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Detected es with confidence 30
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Detection response: [{"confidence":30,"language":"es"}]
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Detected es with confidence 30
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hello"}
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Translation result: hello
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Sending response: hola (🇪🇸 → 🇺🇸 hello)
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hello"}
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Translation result: hello
+2025-03-15 11:26:16 [INFO]: [LibreTranslate] Sending response: hola (🇪🇸 → 🇺🇸 hello)
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Processing message for translation: gracias
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Processing message for translation: gracias
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Detection response: [{"confidence":22,"language":"es"}]
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Detected es with confidence 22
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Detection response: [{"confidence":22,"language":"es"}]
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Detected es with confidence 22
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 11:26:18 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 11:26:19 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"thank you"}
+2025-03-15 11:26:19 [INFO]: [LibreTranslate] Translation result: thank you
+2025-03-15 11:26:19 [INFO]: [LibreTranslate] Sending response: gracias (🇪🇸 → 🇺🇸 thank you)
+2025-03-15 11:26:19 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"thank you"}
+2025-03-15 11:26:19 [INFO]: [LibreTranslate] Translation result: thank you
+2025-03-15 11:26:19 [INFO]: [LibreTranslate] Sending response: gracias (🇪🇸 → 🇺🇸 thank you)
+2025-03-15 11:29:11 [INFO]: [LibreTranslate] Detection response: [{"confidence":8,"language":"en"}]
+2025-03-15 11:29:11 [INFO]: [LibreTranslate] Detected en with confidence 8
+2025-03-15 11:29:11 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hola"}
+2025-03-15 11:29:16 [INFO]: [LibreTranslate] Detection response: [{"confidence":8,"language":"en"}]
+2025-03-15 11:29:16 [INFO]: [LibreTranslate] Detected en with confidence 8
+2025-03-15 11:29:16 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hola, gracias"}
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Processing message for translation: @maxthriller you leveled up to Level 8
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Processing message for translation: @maxthriller you leveled up to Level 8
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 11:29:29 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 11:29:35 [INFO]: [LibreTranslate] Detection response: [{"confidence":30,"language":"es"}]
+2025-03-15 11:29:35 [INFO]: [LibreTranslate] Detected es with confidence 30
+2025-03-15 11:29:35 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hello"}
+2025-03-15 11:29:41 [INFO]: [LibreTranslate] Detection response: [{"confidence":22,"language":"en"}]
+2025-03-15 11:29:41 [INFO]: [LibreTranslate] Detected en with confidence 22
+2025-03-15 11:29:57 [INFO]: [LibreTranslate] Detection response: [{"confidence":22,"language":"es"}]
+2025-03-15 11:29:57 [INFO]: [LibreTranslate] Detected es with confidence 22
+2025-03-15 11:29:57 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"thank you"}
+2025-03-15 11:33:38 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 11:33:38 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 11:33:41 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-15 11:33:41 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 11:33:41 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 11:33:41 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 11:33:42 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 11:33:42 [INFO]: [PluginManager] Loading plugins...
+2025-03-15 11:33:42 [INFO]: [PluginManager] Plugins directory found at: D:\MaxBotWS\MaxBot\plugins
+2025-03-15 11:33:42 [INFO]: [PluginManager] Found 2 plugin files: chat.js, libretranslate.js
+2025-03-15 11:33:42 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\chat.js
+2025-03-15 11:33:42 [WARN]: [PluginManager] Invalid plugin format: chat.js
+2025-03-15 11:33:42 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\libretranslate.js
+2025-03-15 11:33:42 [INFO]: [PluginManager] Plugin loaded with name: libretranslate
+2025-03-15 11:33:42 [INFO]: [PluginManager] Plugin libretranslate enabled from configuration
+2025-03-15 11:33:42 [INFO]: [PluginManager] Loaded plugin: libretranslate v1.0.0
+2025-03-15 11:33:42 [INFO]: [PluginManager] Successfully loaded 1 plugins: libretranslate
+2025-03-15 11:33:42 [INFO]: [PluginManager] Initializing plugins...
+2025-03-15 11:33:42 [INFO]: [PluginManager] Plugins to initialize: libretranslate
+2025-03-15 11:33:42 [INFO]: [PluginManager] Initializing plugin: libretranslate
+2025-03-15 11:33:42 [INFO]: [LibreTranslate] Plugin initializing...
+2025-03-15 11:33:42 [INFO]: [LibreTranslate] Message handler set up successfully
+2025-03-15 11:33:42 [INFO]: [LibreTranslate] Plugin initialized successfully
+2025-03-15 11:33:42 [INFO]: [PluginManager] Initialized plugin: libretranslate
+2025-03-15 11:33:42 [INFO]: [PluginManager] Registered command: translate from plugin: libretranslate
+2025-03-15 11:33:42 [INFO]: [PluginManager] Registered command: tr from plugin: libretranslate
+2025-03-15 11:33:42 [INFO]: [PluginManager] Registered command: trlang from plugin: libretranslate
+2025-03-15 11:33:42 [INFO]: [PluginManager] Registered command: trconfig from plugin: libretranslate
+2025-03-15 11:33:42 [INFO]: [PluginManager] Plugin initialization complete. Enabled plugins: libretranslate
+2025-03-15 11:33:42 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 11:33:42 [INFO]: Available plugins: libretranslate
+2025-03-15 11:33:42 [INFO]: [LibreTranslate] Loaded 46 languages
+2025-03-15 11:34:16 [INFO]: [LibreTranslate] translateAll set to: true
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Processing message for translation: hola
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Processing message for translation: hola
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Detection response: [{"confidence":30,"language":"es"}]
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Detected es with confidence 30
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Detection response: [{"confidence":30,"language":"es"}]
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Detected es with confidence 30
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hello"}
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Translation result: hello
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Sending response: hola (🇪🇸 → 🇺🇸 hello)
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hello"}
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Translation result: hello
+2025-03-15 11:34:19 [INFO]: [LibreTranslate] Sending response: hola (🇪🇸 → 🇺🇸 hello)
+2025-03-15 11:36:52 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 11:36:52 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 11:37:02 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-15 11:37:02 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 11:37:02 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 11:37:02 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 11:37:02 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 11:37:02 [INFO]: [PluginManager] Loading plugins...
+2025-03-15 11:37:02 [INFO]: [PluginManager] Plugins directory found at: D:\MaxBotWS\MaxBot\plugins
+2025-03-15 11:37:02 [INFO]: [PluginManager] Found 2 plugin files: chat.js, libretranslate.js
+2025-03-15 11:37:02 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\chat.js
+2025-03-15 11:37:02 [WARN]: [PluginManager] Invalid plugin format: chat.js
+2025-03-15 11:37:02 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\libretranslate.js
+2025-03-15 11:37:02 [INFO]: [PluginManager] Plugin loaded with name: libretranslate
+2025-03-15 11:37:02 [INFO]: [PluginManager] Plugin libretranslate enabled from configuration
+2025-03-15 11:37:02 [INFO]: [PluginManager] Loaded plugin: libretranslate v1.0.0
+2025-03-15 11:37:02 [INFO]: [PluginManager] Successfully loaded 1 plugins: libretranslate
+2025-03-15 11:37:02 [INFO]: [PluginManager] Initializing plugins...
+2025-03-15 11:37:02 [INFO]: [PluginManager] Plugins to initialize: libretranslate
+2025-03-15 11:37:02 [INFO]: [PluginManager] Initializing plugin: libretranslate
+2025-03-15 11:37:02 [INFO]: [LibreTranslate] Plugin initializing...
+2025-03-15 11:37:02 [INFO]: [LibreTranslate] Using processIncomingMessage for auto-translation
+2025-03-15 11:37:02 [INFO]: [LibreTranslate] Plugin initialized successfully
+2025-03-15 11:37:02 [INFO]: [PluginManager] Initialized plugin: libretranslate
+2025-03-15 11:37:02 [INFO]: [PluginManager] Registered command: translate from plugin: libretranslate
+2025-03-15 11:37:02 [INFO]: [PluginManager] Registered command: tr from plugin: libretranslate
+2025-03-15 11:37:02 [INFO]: [PluginManager] Registered command: trlang from plugin: libretranslate
+2025-03-15 11:37:02 [INFO]: [PluginManager] Registered command: trconfig from plugin: libretranslate
+2025-03-15 11:37:02 [INFO]: [PluginManager] Plugin initialization complete. Enabled plugins: libretranslate
+2025-03-15 11:37:02 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 11:37:02 [INFO]: Available plugins: libretranslate
+2025-03-15 11:37:02 [INFO]: [LibreTranslate] Loaded 46 languages
+2025-03-15 11:37:08 [INFO]: !trconfig translateall enable
+2025-03-15 11:37:08 [INFO]: [LibreTranslate] translateAll set to: true
+2025-03-15 11:37:13 [INFO]: hola
+2025-03-15 11:37:13 [INFO]: [LibreTranslate] Processing message for translation: hola
+2025-03-15 11:37:14 [INFO]: [LibreTranslate] Detection response: [{"confidence":30,"language":"es"}]
+2025-03-15 11:37:14 [INFO]: [LibreTranslate] Detected es with confidence 30
+2025-03-15 11:37:14 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 11:37:14 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 11:37:14 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hello"}
+2025-03-15 11:37:14 [INFO]: [LibreTranslate] Translation result: hello
+2025-03-15 11:37:14 [INFO]: [LibreTranslate] Sending response: hola (🇪🇸 → 🇺🇸 hello)
+2025-03-15 11:37:22 [INFO]: Gracias
+2025-03-15 11:37:22 [INFO]: [LibreTranslate] Processing message for translation: Gracias
+2025-03-15 11:37:22 [INFO]: [LibreTranslate] Detection response: [{"confidence":22,"language":"es"}]
+2025-03-15 11:37:22 [INFO]: [LibreTranslate] Detected es with confidence 22
+2025-03-15 11:37:22 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 11:37:22 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 11:37:22 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"Thank you"}
+2025-03-15 11:37:22 [INFO]: [LibreTranslate] Translation result: Thank you
+2025-03-15 11:37:22 [INFO]: [LibreTranslate] Sending response: Gracias (🇪🇸 → 🇺🇸 Thank you)
+2025-03-15 11:37:30 [INFO]: !tr es hello
+2025-03-15 11:37:30 [INFO]: [LibreTranslate] Detection response: [{"confidence":8,"language":"en"}]
+2025-03-15 11:37:30 [INFO]: [LibreTranslate] Detected en with confidence 8
+2025-03-15 11:37:30 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hola"}
+2025-03-15 11:40:01 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 11:40:01 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 11:40:28 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-15 11:40:28 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 11:40:29 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 11:40:29 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 11:40:29 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 11:40:29 [INFO]: [PluginManager] Loading plugins...
+2025-03-15 11:40:29 [INFO]: [PluginManager] Plugins directory found at: D:\MaxBotWS\MaxBot\plugins
+2025-03-15 11:40:29 [INFO]: [PluginManager] Found 2 plugin files: chat.js, libretranslate.js
+2025-03-15 11:40:29 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\chat.js
+2025-03-15 11:40:29 [WARN]: [PluginManager] Invalid plugin format: chat.js
+2025-03-15 11:40:29 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\libretranslate.js
+2025-03-15 11:40:29 [INFO]: [PluginManager] Plugin loaded with name: libretranslate
+2025-03-15 11:40:29 [INFO]: [PluginManager] Plugin libretranslate enabled from configuration
+2025-03-15 11:40:29 [INFO]: [PluginManager] Loaded plugin: libretranslate v1.0.0
+2025-03-15 11:40:29 [INFO]: [PluginManager] Successfully loaded 1 plugins: libretranslate
+2025-03-15 11:40:29 [INFO]: [PluginManager] Initializing plugins...
+2025-03-15 11:40:29 [INFO]: [PluginManager] Plugins to initialize: libretranslate
+2025-03-15 11:40:29 [INFO]: [PluginManager] Initializing plugin: libretranslate
+2025-03-15 11:40:29 [INFO]: [LibreTranslate] Plugin initializing...
+2025-03-15 11:40:29 [INFO]: [LibreTranslate] Using processIncomingMessage for auto-translation
+2025-03-15 11:40:29 [INFO]: [LibreTranslate] Plugin initialized successfully
+2025-03-15 11:40:29 [INFO]: [PluginManager] Initialized plugin: libretranslate
+2025-03-15 11:40:29 [INFO]: [PluginManager] Registered command: translate from plugin: libretranslate
+2025-03-15 11:40:29 [INFO]: [PluginManager] Registered command: tr from plugin: libretranslate
+2025-03-15 11:40:29 [INFO]: [PluginManager] Registered command: trlang from plugin: libretranslate
+2025-03-15 11:40:29 [INFO]: [PluginManager] Registered command: trconfig from plugin: libretranslate
+2025-03-15 11:40:29 [INFO]: [PluginManager] Plugin initialization complete. Enabled plugins: libretranslate
+2025-03-15 11:40:29 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 11:40:29 [INFO]: Available plugins: libretranslate
+2025-03-15 11:40:30 [INFO]: [LibreTranslate] Loaded 46 languages
+2025-03-15 11:40:34 [INFO]: !trconfig translateall enable
+2025-03-15 11:40:34 [INFO]: [LibreTranslate] translateAll set to: true
+2025-03-15 11:40:41 [INFO]: hola
+2025-03-15 11:40:41 [INFO]: [LibreTranslate] Processing message for translation: hola
+2025-03-15 11:40:41 [INFO]: [LibreTranslate] Detection response: [{"confidence":30,"language":"es"}]
+2025-03-15 11:40:41 [INFO]: [LibreTranslate] Detected es with confidence 30
+2025-03-15 11:40:41 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 11:40:41 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 11:40:41 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hello"}
+2025-03-15 11:40:41 [INFO]: [LibreTranslate] Translation result: hello
+2025-03-15 11:40:41 [INFO]: [LibreTranslate] Sending response: maxthriller 🇪🇸 says, "hello"
+2025-03-15 12:20:46 [INFO]: maxthriller is now live! Streaming Software and Game Development: Creating a Bot to real time translate chat messages.  Come say hola!
+2025-03-15 12:20:46 [INFO]: [LibreTranslate] Processing message for translation: maxthriller is now live! Streaming Software and Game Development: Creating a Bot to real time translate chat messages.  Come say hola!
+2025-03-15 12:20:47 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 12:20:47 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 12:20:47 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:20:47 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:22:20 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 12:22:20 [ERROR]: Disconnected from Twitch: Connection closed.

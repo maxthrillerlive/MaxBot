@@ -133,15 +133,9 @@ const plugin = {
 
         // Set up message handler for auto-translation
         if (this.client) {
-            this.client.on('message', (target, context, msg, self) => {
-                if (self) return; // Skip messages from the bot
-                if (this.enabled && this.config.translateAll && !msg.startsWith('!') && !msg.startsWith('?')) {
-                    this.handleMessage(target, context, msg).catch(error => {
-                        this.logger.error(`[LibreTranslate] Error in message handler: ${error.message}`);
-                    });
-                }
-            });
-            this.logger.info('[LibreTranslate] Message handler set up successfully');
+            // Remove direct message handler to avoid duplication
+            // Instead, we'll use the processIncomingMessage function
+            this.logger.info('[LibreTranslate] Using processIncomingMessage for auto-translation');
         }
 
         this.logger.info('[LibreTranslate] Plugin initialized successfully');
@@ -265,40 +259,33 @@ const plugin = {
         return this.languageFlags[langCode] || '🌐';
     },
     
-    // Process incoming chat messages
+    // Process incoming messages (called by plugin manager)
     processIncomingMessage: async function(messageObj) {
-        if (!this.logger || !this.enabled) {
-            return messageObj;
-        }
-        
-        const { target, context, message: msg, self: isSelf } = messageObj;
-        
-        this.logger.info(`[LibreTranslate] Message received: ${msg}`);
-        this.logger.info(`[LibreTranslate] Plugin state - enabled: ${this.enabled}, translateAll: ${this.config.translateAll}`);
-        
-        if (isSelf) {
-            this.logger.info('[LibreTranslate] Skipping bot message');
-            return messageObj;
-        }
-        
-        // Skip command messages
-        if (msg.startsWith('!')) {
-            return messageObj;
-        }
-        
-        if (this.enabled && this.config.translateAll) {
-            this.logger.info('[LibreTranslate] Message qualifies for translation');
-            try {
-                await this.handleMessage(target, context, msg);
-            } catch (error) {
-                this.logger.error(`[LibreTranslate] Error in message handler: ${error.message}`);
-                if (error.response) {
-                    this.logger.error(`[LibreTranslate] API Error: ${JSON.stringify(error.response.data)}`);
-                }
+        try {
+            // Skip if plugin is disabled or translateAll is disabled
+            if (!this.enabled || !this.config.translateAll) {
+                return messageObj;
             }
+            
+            // Skip commands
+            if (messageObj.message.startsWith('!') || messageObj.message.startsWith('?')) {
+                return messageObj;
+            }
+            
+            // Skip messages from the bot itself
+            if (messageObj.self) {
+                return messageObj;
+            }
+            
+            // Process the message for translation
+            await this.handleMessage(messageObj.target, messageObj.context, messageObj.message);
+            
+            // Return the original message object
+            return messageObj;
+        } catch (error) {
+            this.logger.error(`[LibreTranslate] Error in processIncomingMessage: ${error.message}`);
+            return messageObj;
         }
-        
-        return messageObj;
     },
     
     // Process outgoing messages
@@ -428,8 +415,8 @@ const plugin = {
                 
                 if (translation && translation !== msg) {
                     const sourceFlag = this.getLanguageFlag(sourceLang);
-                    const targetFlag = this.getLanguageFlag(this.config.targetLang);
-                    const response = `${msg} (${sourceFlag} → ${targetFlag} ${translation})`;
+                    // Format the response as "USERNAME FLAG says, '(translated text)'"
+                    const response = `${context.username} ${sourceFlag} says, "${translation}"`;
                     console.log(`[LibreTranslate] Sending response: ${response}`);
                     this.logger.info(`[LibreTranslate] Sending response: ${response}`);
                     this.client.say(target, response);
