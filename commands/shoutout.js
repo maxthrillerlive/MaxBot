@@ -160,8 +160,18 @@ function createShoutoutMessage(username, channelInfo, customMessage = '') {
  */
 async function execute(client, channel, context, args) {
     try {
-        // Ensure args is an array
-        const argsArray = Array.isArray(args) ? args : args.split(' ').filter(arg => arg.trim() !== '');
+        // Parse the command message to extract arguments
+        let argsArray;
+        if (typeof args === 'string') {
+            // If args is the full message string (e.g. "!so username custom message")
+            const commandParts = args.trim().split(' ');
+            // Skip the command itself (e.g. "!so")
+            argsArray = commandParts.slice(1);
+        } else if (Array.isArray(args)) {
+            argsArray = args;
+        } else {
+            argsArray = [];
+        }
         
         // Check if a username was provided
         if (!argsArray || argsArray.length === 0) {
