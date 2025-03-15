@@ -2,6 +2,8 @@
 // Allows moderators to give shoutouts to other streamers with Twitch API integration
 
 const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
 
 // Command configuration
 const config = {
@@ -14,6 +16,59 @@ const config = {
     enabled: true
 };
 
+// Path to the shoutout history file
+const shoutoutHistoryPath = path.join(__dirname, '..', 'config', 'shoutout-history.json');
+
+// Load shoutout history
+let shoutoutHistory = {};
+try {
+    if (fs.existsSync(shoutoutHistoryPath)) {
+        shoutoutHistory = JSON.parse(fs.readFileSync(shoutoutHistoryPath, 'utf8'));
+        console.log(`Loaded shoutout history for ${Object.keys(shoutoutHistory).length} streamers`);
+    } else {
+        // Create the file if it doesn't exist
+        fs.writeFileSync(shoutoutHistoryPath, JSON.stringify({}, null, 2));
+        console.log('Created new shoutout history file');
+    }
+} catch (error) {
+    console.error('Error loading shoutout history:', error);
+    shoutoutHistory = {};
+}
+
+/**
+ * Save a streamer to the shoutout history
+ * @param {string} username - The username to save
+ * @param {Object} channelInfo - The channel information
+ */
+function saveToShoutoutHistory(username, channelInfo) {
+    try {
+        // Always save the user to history, even if we couldn't get channel info
+        // This ensures we can auto-shoutout them when they return
+        shoutoutHistory[username.toLowerCase()] = {
+            displayName: channelInfo ? channelInfo.displayName : username,
+            lastShoutout: Date.now(),
+            game: channelInfo ? (channelInfo.game || '') : '',
+            url: channelInfo ? channelInfo.url : `https://twitch.tv/${username}`
+        };
+        
+        // Save to file
+        fs.writeFileSync(shoutoutHistoryPath, JSON.stringify(shoutoutHistory, null, 2));
+        console.log(`Added ${username} to shoutout history`);
+    } catch (error) {
+        console.error('Error saving to shoutout history:', error);
+    }
+}
+
+/**
+ * Check if a user should receive an auto-shoutout
+ * @param {string} username - The username to check
+ * @returns {boolean} - Whether the user should receive an auto-shoutout
+ */
+function shouldAutoShoutout(username) {
+    const lowerUsername = username.toLowerCase();
+    return shoutoutHistory.hasOwnProperty(lowerUsername);
+}
+
 /**
  * Get channel information from Twitch API
  * @param {string} username - The username to look up
@@ -22,8 +77,8 @@ const config = {
 async function getChannelInfo(username) {
     try {
         // Check for required environment variables
-        if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET) {
-            console.warn('TWITCH_CLIENT_ID or TWITCH_CLIENT_SECRET not set. Using basic shoutout.');
+        if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET) {
+            console.warn('CLIENT_ID or CLIENT_SECRET not set. Using basic shoutout.');
             return null;
         }
         
@@ -34,8 +89,8 @@ async function getChannelInfo(username) {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: new URLSearchParams({
-                client_id: process.env.TWITCH_CLIENT_ID,
-                client_secret: process.env.TWITCH_CLIENT_SECRET,
+                client_id: process.env.CLIENT_ID,
+                client_secret: process.env.CLIENT_SECRET,
                 grant_type: 'client_credentials'
             })
         });
@@ -49,7 +104,7 @@ async function getChannelInfo(username) {
         // Get user information
         const userResponse = await fetch(`https://api.twitch.tv/helix/users?login=${username}`, {
             headers: {
-                'Client-ID': process.env.TWITCH_CLIENT_ID,
+                'Client-ID': process.env.CLIENT_ID,
                 'Authorization': `Bearer ${tokenData.access_token}`
             }
         });
@@ -65,7 +120,7 @@ async function getChannelInfo(username) {
         // Get channel information
         const channelResponse = await fetch(`https://api.twitch.tv/helix/channels?broadcaster_id=${user.id}`, {
             headers: {
-                'Client-ID': process.env.TWITCH_CLIENT_ID,
+                'Client-ID': process.env.CLIENT_ID,
                 'Authorization': `Bearer ${tokenData.access_token}`
             }
         });
@@ -81,7 +136,7 @@ async function getChannelInfo(username) {
         // Check if the channel is live
         const streamResponse = await fetch(`https://api.twitch.tv/helix/streams?user_id=${user.id}`, {
             headers: {
-                'Client-ID': process.env.TWITCH_CLIENT_ID,
+                'Client-ID': process.env.CLIENT_ID,
                 'Authorization': `Bearer ${tokenData.access_token}`
             }
         });
@@ -113,38 +168,45 @@ async function getChannelInfo(username) {
  * @returns {string} - The formatted shoutout message
  */
 function createShoutoutMessage(username, channelInfo, customMessage = '') {
-    // If we couldn't get channel info, create a basic shoutout
+    // Start with the announcement header
+    let message = '📢 Announcement\n';
+    
+    // If we couldn't get channel info, create a community member shoutout
     if (!channelInfo) {
-        let message = `Check out @${username} at https://twitch.tv/${username}`;
+        // Use community member format instead of streamer format
+        message += `💖 Shoutout to @${username} - Thanks for being an awesome part of our community! 💖`;
         
-        // Add custom message if provided
-        if (customMessage) {
-            message += ` - ${customMessage}`;
-        } else {
-            message += ` - they're an awesome streamer!`;
-        }
+        // Add note about missing API credentials if appropriate
+        console.log('Note: For game information and live status, set CLIENT_ID and CLIENT_SECRET in your .env file');
         
         return message;
     }
     
-    // Create a more detailed shoutout message
-    let message = `Check out @${channelInfo.displayName} at ${channelInfo.url}`;
+    // Check if they are a streamer (have game info or channel description)
+    const isStreamer = channelInfo.game || channelInfo.description;
     
-    // Add game info if available
-    if (channelInfo.game) {
-        message += ` - they were last seen playing ${channelInfo.game}!`;
+    if (isStreamer) {
+        // Create a streamer shoutout message
+        message += `🎮 Check out @${channelInfo.displayName} over at ${channelInfo.url}`;
+        
+        // Add game info if available
+        if (channelInfo.game) {
+            if (channelInfo.isLive) {
+                message += ` - currently playing ${channelInfo.game} 👍`;
+            } else {
+                message += ` - They were last seen playing ${channelInfo.game} 👍`;
+            }
+        } else {
+            message += ` 👍`;
+        }
+        
+        // If custom message is provided, append it
+        if (customMessage) {
+            message += ` ${customMessage}`;
+        }
     } else {
-        message += `!`;
-    }
-    
-    // Add live status
-    if (channelInfo.isLive) {
-        message += ` They're LIVE right now!`;
-    }
-    
-    // If custom message is provided, append it
-    if (customMessage) {
-        message += ` ${customMessage}`;
+        // Create a non-streamer community member shoutout
+        message += `💖 Shoutout to @${channelInfo.displayName} - Thanks for being an awesome part of our community! 💖`;
     }
     
     return message;
@@ -197,6 +259,14 @@ async function execute(client, channel, context, args) {
         // Send the shoutout message
         await client.say(channel, shoutoutMessage);
         
+        // Only save to shoutout history if they're a confirmed streamer
+        if (channelInfo && (channelInfo.game || channelInfo.description)) {
+            console.log(`[COMMAND] Saving ${username} to shoutout history as a confirmed streamer`);
+            saveToShoutoutHistory(username, channelInfo);
+        } else {
+            console.log(`[COMMAND] Not saving ${username} to shoutout history - not a confirmed streamer`);
+        }
+        
         console.log(`[COMMAND] Shoutout sent for: ${username}`);
         return true;
     } catch (error) {
@@ -206,8 +276,57 @@ async function execute(client, channel, context, args) {
     }
 }
 
+/**
+ * Process an incoming message to check for auto-shoutouts
+ * @param {Object} client - The TMI client
+ * @param {string} channel - The channel where the message was sent
+ * @param {Object} tags - The message tags (includes username)
+ * @param {string} message - The message content
+ * @param {boolean} self - Whether the message was sent by the bot
+ * @returns {Promise<void>}
+ */
+async function processMessage(client, channel, tags, message, self) {
+    // Skip messages from the bot itself
+    if (self) return;
+    
+    // Skip messages that are commands
+    if (message.startsWith('!')) return;
+    
+    const username = tags.username.toLowerCase();
+    
+    // Check if this user should receive an auto-shoutout
+    if (shouldAutoShoutout(username)) {
+        // Get the streamer info from history
+        const streamerInfo = shoutoutHistory[username];
+        
+        // Check if it's been at least 24 hours since their last shoutout
+        const hoursSinceLastShoutout = (Date.now() - streamerInfo.lastShoutout) / (1000 * 60 * 60);
+        if (hoursSinceLastShoutout >= 24) {
+            console.log(`[AUTO-SHOUTOUT] Checking returning user: ${username}`);
+            
+            // Get fresh channel info
+            const channelInfo = await getChannelInfo(username);
+            
+            // Only auto-shoutout if they're a confirmed streamer (have game info or channel description)
+            if (channelInfo && (channelInfo.game || channelInfo.description)) {
+                console.log(`[AUTO-SHOUTOUT] Giving auto-shoutout to returning streamer: ${username}`);
+                
+                // Create and send the shoutout message
+                const shoutoutMessage = createShoutoutMessage(username, channelInfo, 'Welcome back to the channel!');
+                await client.say(channel, shoutoutMessage);
+                
+                // Update the last shoutout time
+                saveToShoutoutHistory(username, channelInfo);
+            } else {
+                console.log(`[AUTO-SHOUTOUT] Skipping auto-shoutout for ${username} - not a confirmed streamer`);
+            }
+        }
+    }
+}
+
 // Export the command
 module.exports = {
     config,
-    execute
+    execute,
+    processMessage
 }; 
