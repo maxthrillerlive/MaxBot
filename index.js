@@ -166,6 +166,20 @@ client.on('message', async (channel, tags, message, self) => {
         } else {
             console.log('DIRECT HANDLER: Command not found:', commandName);
         }
+    } else {
+        // Process auto-shoutouts for non-command messages
+        try {
+            // Get the shoutout command
+            const commands = commandManager.getCommands();
+            const shoutoutCommand = commands.find(([name, cmd]) => name === 'shoutout');
+            
+            if (shoutoutCommand && typeof shoutoutCommand[1].processMessage === 'function') {
+                // Call the processMessage function to check for auto-shoutouts
+                await shoutoutCommand[1].processMessage(client, channel, tags, message, self);
+            }
+        } catch (error) {
+            console.error('Error processing auto-shoutout:', error);
+        }
     }
 });
 
