@@ -1,0 +1,9 @@
+{
+  "username": "Max2d2",
+  "channels": [
+    "maxthriller"
+  ],
+  "autoReconnect": true,
+  "reconnectInterval": 5000,
+  "maxReconnectAttempts": 10
+}

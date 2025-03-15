@@ -1,0 +1,6 @@
+{
+  "enableLogging": true,
+  "enableChatHistory": true,
+  "maxChatHistory": 100,
+  "maxLogEntries": 1000
+}

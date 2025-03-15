@@ -6,12 +6,22 @@ const commandManager = require('./commandManager');
 const logger = require('./logger');
 const { spawn } = require('child_process');
 const twitchAuth = require('./twitch-auth'); // Import the new Twitch auth module
+const PluginManager = require('./pluginManager'); // Import the plugin manager
+const ConfigManager = require('./config-manager'); // Import the configuration manager
 
 // Add this line to define startTime
 const startTime = Date.now();
 
-// Create WebSocket server
-const wss = new WebSocket.Server({ port: process.env.PORT || 8080 });
+// Initialize configuration manager
+const configManager = new ConfigManager(logger);
+
+// Initialize plugin manager with logger and config manager
+const pluginManager = new PluginManager(logger, configManager);
+
+// Create WebSocket server with port from config
+const wsPort = configManager.get('webcp.wsPort', process.env.PORT || 8080);
+const wss = new WebSocket.Server({ port: wsPort });
+console.log(`WebSocket server starting on port ${wsPort}`);
 
 // Move lock file to project root directory
 const lockFile = path.join(__dirname, '..', 'bot.lock');
@@ -114,32 +124,30 @@ const client = twitchAuth.initializeTwitchClient();
 
 // After creating the client but before using it
 const originalSay = client.say;
-client.say = async function(channel, message) {
-    // Call the original method
-    await originalSay.call(this, channel, message);
+client.say = async function(target, message) {
+    // Create a message object for plugin processing
+    const messageObj = {
+        target,
+        message
+    };
     
-    // Only broadcast if this isn't a duplicate (use a simple cache)
-    const cacheKey = `${channel}-${message}-${Date.now()}`;
-    if (!messageCache.has(cacheKey)) {
-        messageCache.set(cacheKey, { timestamp: Date.now() });
+    // Process the message through plugins (for outgoing translation)
+    const processedMessages = await pluginManager.processOutgoingMessage(messageObj);
+    
+    // Send each processed message
+    for (const msg of processedMessages) {
+        await originalSay.call(client, msg.target, msg.message);
         
-        // Clean up after a short delay
-        setTimeout(() => {
-            messageCache.delete(cacheKey);
-        }, 1000);
-        
-        console.log(`[BOT] Sending message to ${channel}: ${message}`);
-        
-        // Broadcast the message to all connected clients
+        // Broadcast the bot's message to all WebCP clients
         broadcastToAll({
-            type: 'CHAT_MESSAGE',
-            data: {
-                channel: channel,
-                username: process.env.BOT_USERNAME,
-                message: message,
-                badges: { bot: '1' },  // Add a bot badge
-                timestamp: Date.now(),
-                id: 'bot-response-' + Date.now()
+            type: 'CHAT_FROM_TWITCH',
+            username: process.env.BOT_USERNAME || 'MaxBot',
+            message: msg.message,
+            channel: msg.target,
+            badges: {
+                broadcaster: "0",
+                moderator: "1",
+                bot: "1"
             }
         });
     }
@@ -594,8 +602,21 @@ async function handleWebSocketMessage(ws, data) {
                     console.log(`Received COMMAND message: ${data.command}`);
                     // Check if this is a command (starts with !) or a regular message
                     if (data.command.startsWith('!')) {
-                        // This is a command, handle it normally
+                        // This is a command, broadcast it first
                         const channel = data.channel || process.env.CHANNEL_NAME;
+                        broadcastToAll({
+                            type: 'CHAT_FROM_TWITCH',
+                            username: process.env.BOT_USERNAME || 'MaxBot',
+                            message: data.command,
+                            channel: channel,
+                            badges: {
+                                broadcaster: "0",
+                                moderator: "1",
+                                bot: "1"
+                            }
+                        });
+                        
+                        // Then handle it normally
                         const result = await commandManager.handleCommand(
                             client,
                             channel,
@@ -643,13 +664,37 @@ async function handleWebSocketMessage(ws, data) {
                         const channel = data.channel || process.env.CHANNEL_NAME;
                         // Check if this is a command (starts with !)
                         if (data.message.startsWith('!')) {
-                            // This is a command, let the command manager handle it
+                            // This is a command, broadcast it first
+                            broadcastToAll({
+                                type: 'CHAT_FROM_TWITCH',
+                                username: process.env.BOT_USERNAME || 'MaxBot',
+                                message: data.message,
+                                channel: channel,
+                                badges: {
+                                    broadcaster: "0",
+                                    moderator: "1",
+                                    bot: "1"
+                                }
+                            });
+                            
+                            // Then let the command manager handle it
                             console.log(`[CONTROL] Treating message as command: ${data.message}`);
                             
+                            // Create a context object for the command
+                            const context = {
+                                username: process.env.BOT_USERNAME,
+                                badges: {
+                                    broadcaster: "0",
+                                    moderator: "1",
+                                    bot: "1"
+                                }
+                            };
+                            
+                            // Handle the command
                             const result = await commandManager.handleCommand(
                                 client,
                                 channel,
-                                { username: process.env.BOT_USERNAME },
+                                context,
                                 data.message
                             );
                             
@@ -767,6 +812,168 @@ async function handleWebSocketMessage(ws, data) {
                     }
                 }
                 break;
+            case 'GET_PLUGINS':
+                // Get plugin status and send it back
+                const pluginStatus = pluginManager.getPluginStatus();
+                ws.send(JSON.stringify({
+                    type: 'PLUGINS',
+                    data: pluginStatus
+                }));
+                break;
+                
+            case 'ENABLE_PLUGIN':
+                if (data.plugin) {
+                    const success = pluginManager.enablePlugin(data.plugin);
+                    ws.send(JSON.stringify({
+                        type: 'PLUGIN_ENABLED',
+                        plugin: data.plugin,
+                        success: success
+                    }));
+                    
+                    if (success) {
+                        // Broadcast to all clients
+                        broadcastToAll({
+                            type: 'PLUGIN_ENABLED',
+                            plugin: data.plugin
+                        });
+                    }
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'ERROR',
+                        error: 'Missing plugin name for ENABLE_PLUGIN message'
+                    }));
+                }
+                break;
+                
+            case 'DISABLE_PLUGIN':
+                if (data.plugin) {
+                    const success = pluginManager.disablePlugin(data.plugin);
+                    ws.send(JSON.stringify({
+                        type: 'PLUGIN_DISABLED',
+                        plugin: data.plugin,
+                        success: success
+                    }));
+                    
+                    if (success) {
+                        // Broadcast to all clients
+                        broadcastToAll({
+                            type: 'PLUGIN_DISABLED',
+                            plugin: data.plugin
+                        });
+                    }
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'ERROR',
+                        error: 'Missing plugin name for DISABLE_PLUGIN message'
+                    }));
+                }
+                break;
+                
+            case 'CONFIGURE_PLUGIN':
+                if (data.plugin && data.config) {
+                    try {
+                        const plugin = pluginManager.getPlugin(data.plugin);
+                        if (plugin) {
+                            // Log the configuration update attempt
+                            logger.info(`Configuring plugin: ${data.plugin}`);
+                            
+                            // Use the plugin manager's savePluginConfig method to update and save the configuration
+                            const success = pluginManager.savePluginConfig(data.plugin, data.config);
+                            
+                            // Send response to the client
+                            ws.send(JSON.stringify({
+                                type: 'PLUGIN_CONFIGURED',
+                                plugin: data.plugin,
+                                success: success,
+                                timestamp: Date.now()
+                            }));
+                            
+                            // Broadcast the configuration change to all clients if successful
+                            if (success) {
+                                logger.info(`Plugin ${data.plugin} configuration updated successfully`);
+                                broadcastToAll({
+                                    type: 'PLUGIN_CONFIGURED',
+                                    plugin: data.plugin,
+                                    timestamp: Date.now()
+                                });
+                            } else {
+                                logger.warn(`Failed to update configuration for plugin ${data.plugin}`);
+                            }
+                        } else {
+                            logger.warn(`Plugin ${data.plugin} not found for configuration update`);
+                            ws.send(JSON.stringify({
+                                type: 'ERROR',
+                                error: `Plugin ${data.plugin} not found`,
+                                timestamp: Date.now()
+                            }));
+                        }
+                    } catch (error) {
+                        logger.error(`Error configuring plugin ${data.plugin}: ${error.message}`);
+                        ws.send(JSON.stringify({
+                            type: 'ERROR',
+                            error: `Error configuring plugin: ${error.message}`,
+                            timestamp: Date.now()
+                        }));
+                    }
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'ERROR',
+                        error: 'Missing plugin name or configuration for CONFIGURE_PLUGIN message',
+                        timestamp: Date.now()
+                    }));
+                }
+                break;
+            case 'GET_CONFIG':
+                // Send the current configuration
+                try {
+                    const config = configManager.getAll();
+                    ws.send(JSON.stringify({
+                        type: 'CONFIG',
+                        data: config,
+                        timestamp: Date.now()
+                    }));
+                } catch (error) {
+                    console.error('Error getting configuration:', error);
+                    ws.send(JSON.stringify({
+                        type: 'ERROR',
+                        error: 'Error getting configuration: ' + error.message
+                    }));
+                }
+                break;
+                
+            case 'UPDATE_CONFIG':
+                // Update the configuration
+                if (data.config) {
+                    try {
+                        const success = configManager.update(data.config);
+                        ws.send(JSON.stringify({
+                            type: 'CONFIG_UPDATED',
+                            success: success,
+                            timestamp: Date.now()
+                        }));
+                        
+                        // Broadcast the configuration change to all clients
+                        if (success) {
+                            broadcastToAll({
+                                type: 'CONFIG_UPDATED',
+                                timestamp: Date.now()
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error updating configuration:', error);
+                        ws.send(JSON.stringify({
+                            type: 'ERROR',
+                            error: 'Error updating configuration: ' + error.message
+                        }));
+                    }
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'ERROR',
+                        error: 'Missing configuration data for UPDATE_CONFIG message'
+                    }));
+                }
+                break;
+                
             default:
                 ws.send(JSON.stringify({ 
                     type: 'ERROR', 
@@ -775,7 +982,10 @@ async function handleWebSocketMessage(ws, data) {
         }
     } catch (error) {
         console.error('Error handling WebSocket message:', error);
-        ws.send(JSON.stringify({ type: 'ERROR', error: error.message }));
+        ws.send(JSON.stringify({
+            type: 'ERROR',
+            error: 'Error processing message: ' + error.message
+        }));
     }
 }
 
@@ -958,13 +1168,36 @@ async function onMessageHandler(target, context, msg, self) {
     // The message will already be captured by our client.say wrapper
     if (self) return;
 
+    // Create a message object for plugin processing
+    const messageObj = {
+        target,
+        context,
+        message: msg,
+        self
+    };
+
+    // Process the message through plugins (for incoming translation)
+    const processedMessage = await pluginManager.processIncomingMessage(messageObj);
+    
+    // Use the processed message
+    const processedMsg = processedMessage.message;
+
     // Remove whitespace from chat message
-    const commandText = msg.trim().toLowerCase();
+    const commandText = processedMsg.trim().toLowerCase();
     
     // Check if the message is actually a command
     if (!commandText.startsWith('!')) {
         return; // Not a command, ignore
     }
+
+    // Broadcast the command message to all WebCP clients before processing it
+    broadcastToAll({
+        type: 'CHAT_FROM_TWITCH',
+        username: context.username,
+        message: msg, // Use original message to preserve case
+        channel: target,
+        badges: context.badges || {}
+    });
 
     // Check for duplicate messages and command spam
     if (!addToMessageCache(context, commandText)) {
@@ -994,16 +1227,54 @@ async function onMessageHandler(target, context, msg, self) {
         
         if (commandText.startsWith('!enable ')) {
             const commandName = commandText.split(' ')[1];
-            if (commandManager.enableCommand(commandName)) {
-                await client.say(target, `Enabled command: ${commandName}`);
+            if (commandName.startsWith('plugin:')) {
+                // Enable a plugin
+                const pluginName = commandName.substring(7);
+                if (pluginManager.enablePlugin(pluginName)) {
+                    await client.say(target, `Enabled plugin: ${pluginName}`);
+                } else {
+                    await client.say(target, `Failed to enable plugin: ${pluginName}`);
+                }
+            } else {
+                // Enable a regular command
+                if (commandManager.enableCommand(commandName)) {
+                    await client.say(target, `Enabled command: ${commandName}`);
+                } else {
+                    await client.say(target, `Failed to enable command: ${commandName}`);
+                }
             }
             return; // Exit after handling mod command
         }
-
+        
         if (commandText.startsWith('!disable ')) {
             const commandName = commandText.split(' ')[1];
-            if (commandManager.disableCommand(commandName)) {
-                await client.say(target, `Disabled command: ${commandName}`);
+            if (commandName.startsWith('plugin:')) {
+                // Disable a plugin
+                const pluginName = commandName.substring(7);
+                if (pluginManager.disablePlugin(pluginName)) {
+                    await client.say(target, `Disabled plugin: ${pluginName}`);
+                } else {
+                    await client.say(target, `Failed to disable plugin: ${pluginName}`);
+                }
+            } else {
+                // Disable a regular command
+                if (commandManager.disableCommand(commandName)) {
+                    await client.say(target, `Disabled command: ${commandName}`);
+                } else {
+                    await client.say(target, `Failed to disable command: ${commandName}`);
+                }
+            }
+            return; // Exit after handling mod command
+        }
+        
+        // Add plugin list command
+        if (commandText === '!plugins') {
+            const plugins = pluginManager.getPluginStatus();
+            if (plugins.length === 0) {
+                await client.say(target, `@${context.username} No plugins loaded.`);
+            } else {
+                const pluginList = plugins.map(p => `${p.name} (${p.enabled ? 'enabled' : 'disabled'})`).join(', ');
+                await client.say(target, `@${context.username} Loaded plugins: ${pluginList}`);
             }
             return; // Exit after handling mod command
         }
@@ -1012,6 +1283,26 @@ async function onMessageHandler(target, context, msg, self) {
     // Handle regular commands
     try {
         console.log(`[DEBUG] Attempting to handle command via CommandManager`);
+        
+        // Check for plugin commands first
+        const pluginCommands = pluginManager.getPluginCommands();
+        if (pluginCommands[commandText.split(' ')[0]]) {
+            const command = pluginCommands[commandText.split(' ')[0]];
+            const args = commandText.indexOf(' ') > -1 ? commandText.substring(commandText.indexOf(' ') + 1) : '';
+            
+            // Check if command is mod-only
+            if (command.modOnly && !isMod) {
+                await client.say(target, `@${context.username} This command is for moderators only.`);
+                return;
+            }
+            
+            // Execute the command
+            await command.handler(client, target, context, args);
+            console.log(`[DEBUG] Handled plugin command: ${commandText.split(' ')[0]}`);
+            return;
+        }
+        
+        // If not a plugin command, try regular commands
         const handled = await commandManager.handleCommand(client, target, context, commandText);
         console.log(`[DEBUG] Command handled: ${handled}`);
     } catch (error) {
@@ -1182,4 +1473,71 @@ async function handleRestart() {
 process.on('RESTART_BOT', async () => {
     console.log('Received RESTART_BOT event. Calling handleRestart()...');
     await handleRestart();
-}); 
+});
+
+// Initialize the bot
+async function initializeBot() {
+    try {
+        // ... existing initialization code ...
+        
+        // Load and initialize plugins
+        pluginManager.setBot(client);
+        pluginManager.loadPlugins();
+        pluginManager.initPlugins();
+        
+        // Enable the translator plugin by default
+        const translatorPlugin = pluginManager.getPlugin('translator');
+        if (translatorPlugin) {
+            logger.info('Enabling translator plugin by default');
+            translatorPlugin.enable();
+            logger.info('Translator plugin enabled by default');
+        } else {
+            logger.error('Translator plugin not found! Check if the plugin file exists in the plugins directory.');
+            logger.info(`Available plugins: ${Array.from(pluginManager.getAllPlugins().map(p => p.name)).join(', ')}`);
+        }
+        
+        // ... rest of initialization code ...
+    } catch (error) {
+        console.error('Error initializing bot:', error);
+        logger.error(`Error initializing bot: ${error.message}`);
+        logger.error(`Error stack: ${error.stack}`);
+    }
+}
+
+// Add this code at the end of the file, after the initializeBot function
+// Explicitly load and enable the translator plugin
+try {
+    const translatorPath = path.join(__dirname, 'plugins', 'translator.js');
+    logger.info(`Loading translator plugin from: ${translatorPath}`);
+    
+    if (fs.existsSync(translatorPath)) {
+        // Clear require cache to ensure we get fresh plugin code
+        delete require.cache[require.resolve(translatorPath)];
+        
+        // Load the plugin
+        const translatorPlugin = require(translatorPath);
+        logger.info(`Translator plugin loaded: ${translatorPlugin.name} v${translatorPlugin.version}`);
+        
+        // Add the plugin to the plugin manager
+        pluginManager.plugins.set(translatorPlugin.name, translatorPlugin);
+        
+        // Initialize the plugin
+        if (typeof translatorPlugin.init === 'function') {
+            translatorPlugin.init(client, logger);
+            logger.info('Translator plugin initialized');
+        }
+        
+        // Enable the plugin
+        if (typeof translatorPlugin.enable === 'function') {
+            translatorPlugin.enable();
+            logger.info('Translator plugin enabled');
+        }
+        
+        logger.info('Translator plugin setup complete');
+    } else {
+        logger.error(`Translator plugin file not found at: ${translatorPath}`);
+    }
+} catch (error) {
+    logger.error(`Error setting up translator plugin: ${error.message}`);
+    logger.error(`Error stack: ${error.stack}`);
+} 

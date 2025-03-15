@@ -516,3 +516,316 @@
 2025-03-14 11:00:24 [ERROR]: Disconnected from Twitch: Connection closed.
 2025-03-14 11:17:32 [ERROR]: Disconnected from Twitch: Connection closed.
 2025-03-14 11:17:32 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 12:14:34 [INFO]: hola
+2025-03-14 12:14:38 [INFO]: !hello
+2025-03-14 12:15:55 [INFO]: Hola
+2025-03-14 12:28:11 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 12:28:11 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 12:30:50 [INFO]: No configuration file found at D:\MaxBotWS\config.json, using defaults
+2025-03-14 12:30:50 [INFO]: Configuration saved to D:\MaxBotWS\config.json
+2025-03-14 12:40:28 [INFO]: Saved bot configuration to D:\MaxBotWS\MaxBot\config\bot.json
+2025-03-14 12:40:28 [INFO]: Saved webcp configuration to D:\MaxBotWS\MaxBot\config\webcp.json
+2025-03-14 12:40:28 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 12:40:28 [INFO]: Saved commands configuration to D:\MaxBotWS\MaxBot\config\commands.json
+2025-03-14 12:40:28 [INFO]: Saved features configuration to D:\MaxBotWS\MaxBot\config\features.json
+2025-03-14 12:40:28 [INFO]: Configuration saved to D:\MaxBotWS\MaxBot\config
+2025-03-14 12:40:53 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 12:40:53 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 12:40:56 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 12:45:14 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 12:53:45 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 12:53:45 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 12:58:18 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 13:00:07 [WARN]: Plugin translator not found for configuration update
+2025-03-14 13:03:45 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 13:03:45 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 13:03:58 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 13:05:15 [WARN]: Plugin translator not found for configuration update
+2025-03-14 13:18:06 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 13:21:04 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 13:22:06 [WARN]: Plugin translator not found for configuration update
+2025-03-14 13:24:25 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 13:26:25 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 13:27:54 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 13:27:54 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 13:27:54 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 13:27:54 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 13:27:54 [INFO]: Translator plugin initialized
+2025-03-14 13:27:54 [INFO]: [Translator] Plugin enabled
+2025-03-14 13:27:54 [INFO]: Translator plugin enabled
+2025-03-14 13:27:54 [INFO]: Translator plugin setup complete
+2025-03-14 13:30:39 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 13:30:40 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 13:30:40 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 13:30:40 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 13:30:40 [WARN]: [Translator] No API key set. Translation functionality will be limited.
+2025-03-14 13:30:40 [INFO]: Translator plugin initialized
+2025-03-14 13:30:40 [INFO]: [Translator] Plugin enabled
+2025-03-14 13:30:40 [INFO]: Translator plugin enabled
+2025-03-14 13:30:40 [INFO]: Translator plugin setup complete
+2025-03-14 13:31:11 [INFO]: Configuring plugin: translator
+2025-03-14 13:31:11 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 13:31:11 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 13:31:11 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 13:31:11 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 13:31:11 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 13:31:11 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 13:31:11 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:05:51 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 14:05:51 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 14:05:51 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 14:05:51 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 14:05:51 [INFO]: Translator plugin initialized
+2025-03-14 14:05:51 [INFO]: [Translator] Plugin enabled
+2025-03-14 14:05:51 [INFO]: Translator plugin enabled
+2025-03-14 14:05:51 [INFO]: Translator plugin setup complete
+2025-03-14 14:06:17 [INFO]: Configuring plugin: translator
+2025-03-14 14:06:17 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:06:17 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:06:17 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:06:17 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:06:17 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:06:17 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:06:17 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:07:03 [INFO]: Configuring plugin: translator
+2025-03-14 14:07:03 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:07:03 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:07:03 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:07:03 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:07:03 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:07:03 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:07:03 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:07:18 [INFO]: Configuring plugin: translator
+2025-03-14 14:07:18 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:07:18 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:07:18 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:07:18 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:07:18 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:07:18 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:07:18 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:07:18 [INFO]: Configuring plugin: translator
+2025-03-14 14:07:18 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:07:18 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:07:18 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:07:18 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:07:18 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:07:18 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:07:18 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:07:18 [INFO]: Configuring plugin: translator
+2025-03-14 14:07:18 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:07:18 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:07:18 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:07:18 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:07:18 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:07:18 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:07:18 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:10:43 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 14:10:43 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 14:10:43 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 14:10:43 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 14:10:43 [WARN]: [Translator] No API key set. Translation functionality will be limited.
+2025-03-14 14:10:43 [INFO]: Translator plugin initialized
+2025-03-14 14:10:43 [INFO]: [Translator] Plugin enabled
+2025-03-14 14:10:43 [INFO]: Translator plugin enabled
+2025-03-14 14:10:43 [INFO]: Translator plugin setup complete
+2025-03-14 14:11:39 [INFO]: Configuring plugin: translator
+2025-03-14 14:11:39 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:11:39 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:11:39 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:11:39 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:11:39 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:11:39 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:11:39 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:12:44 [INFO]: Configuring plugin: translator
+2025-03-14 14:12:44 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:12:44 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:12:44 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:12:44 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:12:44 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:12:44 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:12:44 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:13:06 [INFO]: Configuring plugin: translator
+2025-03-14 14:13:06 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:13:06 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:13:06 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:13:06 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:13:06 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:13:06 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:13:06 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:13:21 [INFO]: Configuring plugin: translator
+2025-03-14 14:13:21 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:13:21 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:13:21 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:13:21 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:13:21 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:13:21 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:13:21 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:13:28 [INFO]: Configuring plugin: translator
+2025-03-14 14:13:28 [INFO]: [PluginManager] Saving configuration for plugin: translator
+2025-03-14 14:13:28 [INFO]: [PluginManager] Using plugin's updateConfig method for translator
+2025-03-14 14:13:28 [INFO]: [Translator] Configuration saved to D:\MaxBotWS\MaxBot\config\translator.json
+2025-03-14 14:13:28 [INFO]: [Translator] Configuration updated successfully
+2025-03-14 14:13:28 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:13:28 [INFO]: [PluginManager] Saved configuration for plugin: translator
+2025-03-14 14:13:28 [INFO]: Plugin translator configuration updated successfully
+2025-03-14 14:19:10 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 14:19:11 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 14:19:11 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 14:19:11 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 14:19:11 [INFO]: Translator plugin initialized
+2025-03-14 14:19:11 [INFO]: [Translator] Plugin enabled
+2025-03-14 14:19:11 [INFO]: Translator plugin enabled
+2025-03-14 14:19:11 [INFO]: Translator plugin setup complete
+2025-03-14 14:20:02 [INFO]: yoooo
+2025-03-14 14:34:29 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 14:34:29 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 14:34:29 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 14:34:29 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 14:34:29 [INFO]: Translator plugin initialized
+2025-03-14 14:34:29 [INFO]: [Translator] Plugin enabled
+2025-03-14 14:34:29 [INFO]: Translator plugin enabled
+2025-03-14 14:34:29 [INFO]: Translator plugin setup complete
+2025-03-14 14:35:30 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 14:35:31 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 14:35:31 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 14:35:31 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 14:35:31 [INFO]: Translator plugin initialized
+2025-03-14 14:35:31 [INFO]: [Translator] Plugin enabled
+2025-03-14 14:35:31 [INFO]: Translator plugin enabled
+2025-03-14 14:35:31 [INFO]: Translator plugin setup complete
+2025-03-14 14:36:12 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 14:36:12 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 14:36:12 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 14:36:12 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 14:36:12 [INFO]: Translator plugin initialized
+2025-03-14 14:36:12 [INFO]: [Translator] Plugin enabled
+2025-03-14 14:36:12 [INFO]: Translator plugin enabled
+2025-03-14 14:36:12 [INFO]: Translator plugin setup complete
+2025-03-14 14:37:13 [INFO]: Saved bot configuration to D:\MaxBotWS\MaxBot\config\bot.json
+2025-03-14 14:37:13 [INFO]: Saved webcp configuration to D:\MaxBotWS\MaxBot\config\webcp.json
+2025-03-14 14:37:13 [INFO]: Saved plugins configuration to D:\MaxBotWS\MaxBot\config\plugins.json
+2025-03-14 14:37:13 [INFO]: Saved commands configuration to D:\MaxBotWS\MaxBot\config\commands.json
+2025-03-14 14:37:13 [INFO]: Saved features configuration to D:\MaxBotWS\MaxBot\config\features.json
+2025-03-14 14:38:01 [INFO]: yooo
+2025-03-14 14:47:01 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 14:47:01 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 14:47:01 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 14:47:01 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 14:47:01 [INFO]: Translator plugin initialized
+2025-03-14 14:47:01 [INFO]: [Translator] Plugin enabled
+2025-03-14 14:47:01 [INFO]: Translator plugin enabled
+2025-03-14 14:47:01 [INFO]: Translator plugin setup complete
+2025-03-14 14:53:39 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 14:53:39 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 14:53:39 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 14:53:39 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 14:53:39 [INFO]: Translator plugin initialized
+2025-03-14 14:53:39 [INFO]: [Translator] Plugin enabled
+2025-03-14 14:53:39 [INFO]: Translator plugin enabled
+2025-03-14 14:53:39 [INFO]: Translator plugin setup complete
+2025-03-14 15:15:14 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:15:15 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:15:15 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:15:15 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:15:15 [INFO]: Translator plugin initialized
+2025-03-14 15:15:15 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:15:15 [INFO]: Translator plugin enabled
+2025-03-14 15:15:15 [INFO]: Translator plugin setup complete
+2025-03-14 15:16:59 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 15:16:59 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 15:17:07 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:17:07 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:17:07 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:17:07 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:17:07 [INFO]: Translator plugin initialized
+2025-03-14 15:17:07 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:17:07 [INFO]: Translator plugin enabled
+2025-03-14 15:17:07 [INFO]: Translator plugin setup complete
+2025-03-14 15:20:44 [INFO]: 🇦🇿
+2025-03-14 15:30:47 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:30:47 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:30:47 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:30:47 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:30:47 [INFO]: Translator plugin initialized
+2025-03-14 15:30:47 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:30:47 [INFO]: Translator plugin enabled
+2025-03-14 15:30:47 [INFO]: Translator plugin setup complete
+2025-03-14 15:34:47 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:34:48 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:34:48 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:34:48 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:34:48 [INFO]: Translator plugin initialized
+2025-03-14 15:34:48 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:34:48 [INFO]: Translator plugin enabled
+2025-03-14 15:34:48 [INFO]: Translator plugin setup complete
+2025-03-14 15:34:59 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 15:34:59 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 15:35:08 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:35:08 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:35:08 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:35:08 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:35:08 [INFO]: Translator plugin initialized
+2025-03-14 15:35:08 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:35:08 [INFO]: Translator plugin enabled
+2025-03-14 15:35:08 [INFO]: Translator plugin setup complete
+2025-03-14 15:39:51 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:39:51 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:39:51 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:39:51 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:39:51 [INFO]: Translator plugin initialized
+2025-03-14 15:39:51 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:39:51 [INFO]: Translator plugin enabled
+2025-03-14 15:39:51 [INFO]: Translator plugin setup complete
+2025-03-14 15:42:27 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:42:27 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:42:27 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:42:27 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:42:27 [INFO]: Translator plugin initialized
+2025-03-14 15:42:27 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:42:27 [INFO]: Translator plugin enabled
+2025-03-14 15:42:27 [INFO]: Translator plugin setup complete
+2025-03-14 15:47:05 [WARN]: Plugin chat not found for configuration update
+2025-03-14 15:47:27 [WARN]: Plugin chat not found for configuration update
+2025-03-14 15:47:52 [INFO]: !help
+2025-03-14 15:48:02 [INFO]: !help 󠀀
+2025-03-14 15:48:09 [INFO]: !roll
+2025-03-14 15:49:30 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:49:30 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:49:30 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:49:30 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:49:30 [INFO]: Translator plugin initialized
+2025-03-14 15:49:30 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:49:30 [INFO]: Translator plugin enabled
+2025-03-14 15:49:30 [INFO]: Translator plugin setup complete
+2025-03-14 15:52:01 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 15:52:01 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 15:52:14 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:52:14 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:52:15 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:52:15 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:52:15 [INFO]: Translator plugin initialized
+2025-03-14 15:52:15 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:52:15 [INFO]: Translator plugin enabled
+2025-03-14 15:52:15 [INFO]: Translator plugin setup complete
+2025-03-14 15:52:50 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 15:52:50 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 15:52:52 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 15:52:53 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 15:52:53 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 15:52:53 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 15:52:53 [INFO]: Translator plugin initialized
+2025-03-14 15:52:53 [INFO]: [Translator] Plugin enabled
+2025-03-14 15:52:53 [INFO]: Translator plugin enabled
+2025-03-14 15:52:53 [INFO]: Translator plugin setup complete
+2025-03-14 16:21:42 [ERROR]: Disconnected from Twitch: 
+2025-03-14 16:21:42 [ERROR]: Disconnected from Twitch: 
+2025-03-14 20:56:31 [ERROR]: Disconnected from Twitch: 
+2025-03-14 20:56:31 [ERROR]: Disconnected from Twitch: 
+2025-03-14 23:33:39 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 23:33:39 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 23:33:40 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 23:33:40 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 23:33:40 [INFO]: Translator plugin initialized
+2025-03-14 23:33:40 [INFO]: [Translator] Plugin enabled
+2025-03-14 23:33:40 [INFO]: Translator plugin enabled
+2025-03-14 23:33:40 [INFO]: Translator plugin setup complete

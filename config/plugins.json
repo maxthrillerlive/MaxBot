@@ -1,0 +1,17 @@
+{
+  "enabled": [
+    "translator"
+  ],
+  "settings": {
+    "translator": {
+      "apiKey": "",
+      "defaultTargetLanguage": "en",
+      "translateIncoming": false,
+      "translateOutgoing": false,
+      "outgoingLanguages": [
+        "es",
+        "fr"
+      ]
+    }
+  }
+}

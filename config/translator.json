@@ -1,0 +1,21 @@
+{
+  "apiKey": "2222",
+  "defaultTargetLanguage": "ru",
+  "translateIncoming": true,
+  "translateOutgoing": true,
+  "supportedLanguages": {
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "ru": "Russian",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Chinese"
+  },
+  "outgoingLanguages": [
+    "zh"
+  ]
+}
