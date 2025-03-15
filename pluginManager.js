@@ -14,6 +14,7 @@ class PluginManager {
     this.pluginsDir = path.join(__dirname, 'plugins');
     this.bot = null;
     this.configManager = configManager;
+    this.commandManager = null;
     
     // Bind methods
     this.loadPlugins = this.loadPlugins.bind(this);
@@ -31,6 +32,8 @@ class PluginManager {
    */
   setBot(bot) {
     this.bot = bot;
+    this.commandManager = bot.commandManager;
+    this.logger.info('[PluginManager] Bot and command manager set');
   }
   
   /**
@@ -131,6 +134,29 @@ class PluginManager {
         
         if (success) {
           this.logger.info(`[PluginManager] Initialized plugin: ${name}`);
+          
+          // Register plugin commands with command manager if available
+          if (this.commandManager && plugin.commands) {
+            for (const [cmdName, command] of Object.entries(plugin.commands)) {
+              this.commandManager.addCommand({
+                name: cmdName,
+                execute: (client, target, context, msg) => {
+                    // Convert ? to ! for command processing
+                    const modifiedMsg = msg.replace(/^\?/, '!');
+                    return command.execute(client, target, context, modifiedMsg);
+                },
+                config: {
+                  name: cmdName,
+                  description: command.description || 'No description',
+                  usage: command.usage || `?${cmdName}`,
+                  enabled: command.enabled !== false,
+                  modOnly: command.modOnly || false,
+                  prefix: '?' // Add prefix indicator
+                }
+              });
+              this.logger.info(`[PluginManager] Registered command: ${cmdName} from plugin: ${name}`);
+            }
+          }
         } else {
           this.logger.warn(`[PluginManager] Failed to initialize plugin: ${name}`);
         }
@@ -149,39 +175,22 @@ class PluginManager {
    * @returns {boolean} - Whether the plugin was successfully enabled
    */
   enablePlugin(name) {
-    const plugin = this.plugins.get(name);
-    
-    if (!plugin) {
-      this.logger.warn(`[PluginManager] Plugin not found: ${name}`);
-      return false;
-    }
-    
     try {
-      if (typeof plugin.enable === 'function') {
-        const success = plugin.enable();
-        
-        if (success) {
-          this.logger.info(`[PluginManager] Enabled plugin: ${name}`);
-          
-          // Update configuration if available
-          if (this.configManager) {
-            const enabledPlugins = this.configManager.get('plugins.enabled', []);
-            if (!enabledPlugins.includes(name)) {
-              enabledPlugins.push(name);
-              this.configManager.set('plugins.enabled', enabledPlugins);
-              this.logger.info(`[PluginManager] Updated enabled plugins in configuration`);
-            }
-          }
-          
-          return true;
-        } else {
-          this.logger.warn(`[PluginManager] Failed to enable plugin: ${name}`);
-          return false;
-        }
-      } else {
-        this.logger.warn(`[PluginManager] Plugin ${name} does not have an enable method`);
+      const plugin = this.plugins.get(name);
+      if (!plugin) {
+        this.logger.error(`[PluginManager] Plugin not found: ${name}`);
         return false;
       }
+
+      // Call the plugin's enable method
+      const result = plugin.enable();
+      
+      if (result) {
+        this.logger.info(`[PluginManager] Enabled plugin: ${name}`);
+        return true;
+      }
+      
+      return false;
     } catch (error) {
       this.logger.error(`[PluginManager] Error enabling plugin ${name}: ${error.message}`);
       return false;
@@ -260,21 +269,17 @@ class PluginManager {
     
     for (const plugin of this.plugins.values()) {
       // Skip disabled plugins
-      if (plugin.enabled === false) {
+      if (!plugin.enabled) {
         continue;
       }
       
-      // Check if the plugin has a getCommands method
-      if (typeof plugin.getCommands === 'function') {
-        try {
-          const pluginCommands = plugin.getCommands();
-          
-          // Add each command to our commands object
-          for (const [command, handler] of Object.entries(pluginCommands)) {
-            commands[command] = handler;
-          }
-        } catch (error) {
-          this.logger.error(`[PluginManager] Error getting commands from plugin ${plugin.name}: ${error.message}`);
+      // Get commands from plugin
+      if (plugin.commands) {
+        for (const [name, command] of Object.entries(plugin.commands)) {
+          commands[name] = {
+            ...command,
+            plugin: plugin
+          };
         }
       }
     }
@@ -283,30 +288,26 @@ class PluginManager {
   }
   
   /**
-   * Process an incoming chat message through all enabled plugins
-   * @param {Object} message - The chat message object
-   * @returns {Promise<Object>} - The processed message
+   * Process incoming message through plugins
    */
-  async processIncomingMessage(message) {
-    let processedMessage = message;
+  async processIncomingMessage(messageObj) {
+    // Skip if no plugins
+    if (this.plugins.size === 0) {
+      return messageObj;
+    }
     
+    // Process through each enabled plugin
     for (const plugin of this.plugins.values()) {
-      // Skip disabled plugins
-      if (plugin.enabled === false) {
-        continue;
-      }
-      
-      // Check if the plugin has a processIncomingMessage method
-      if (typeof plugin.processIncomingMessage === 'function') {
+      if (plugin.enabled && typeof plugin.processIncomingMessage === 'function') {
         try {
-          processedMessage = await plugin.processIncomingMessage(processedMessage);
+          messageObj = await plugin.processIncomingMessage(messageObj);
         } catch (error) {
-          this.logger.error(`[PluginManager] Error processing incoming message with plugin ${plugin.name}: ${error.message}`);
+          this.logger.error(`[PluginManager] Error processing message in plugin ${plugin.name}: ${error.message}`);
         }
       }
     }
     
-    return processedMessage;
+    return messageObj;
   }
   
   /**

@@ -68,16 +68,35 @@ function loadCommands() {
 // Handle a command
 async function handleCommand(client, target, context, commandText) {
     try {
-        // Extract the command name (remove the ! prefix)
+        console.log('=== Command Manager: handleCommand Start ===');
+        console.log('Input:', {
+            target,
+            context: JSON.stringify(context),
+            commandText
+        });
+        
+        // Extract the command name and prefix
         const parts = commandText.trim().split(' ');
+        const prefix = parts[0].charAt(0);
         const commandName = parts[0].substring(1).toLowerCase();
         
-        console.log('Looking for command:', commandName);
+        console.log('Command parsing:', {
+            parts,
+            prefix,
+            commandName
+        });
+        
+        console.log('Looking for command:', commandName, 'with prefix:', prefix);
         console.log('Available commands:', Array.from(commands.keys()));
         console.log('Available aliases:', Array.from(aliases.keys()));
         
         // Find the command
         let command = commands.get(commandName);
+        console.log('Direct command lookup result:', command ? {
+            name: command.config.name,
+            enabled: command.config.enabled,
+            modOnly: command.config.modOnly
+        } : 'not found');
         
         // Check aliases if command not found directly
         if (!command && aliases.has(commandName)) {
@@ -92,16 +111,32 @@ async function handleCommand(client, target, context, commandText) {
             return false;
         }
         
+        // Check if prefix matches (plugins use ?, regular commands use !)
+        const expectedPrefix = command.config?.prefix || '!';
+        if (prefix !== expectedPrefix) {
+            console.log(`Wrong prefix for command ${commandName}. Expected: ${expectedPrefix}, got: ${prefix}`);
+            return false;
+        }
+        
         // Check if command is enabled
-        if (command.config.enabled === false) {
+        if (command.config && command.config.enabled === false) {
             console.log(`Command is disabled: ${commandName}`);
             return false;
         }
         
         // Check if command is mod-only
-        if (command.config.modOnly) {
+        if (command.config && command.config.modOnly) {
             const isMod = context.mod || context.badges?.broadcaster === '1' || 
                           context.username.toLowerCase() === process.env.CHANNEL_NAME.toLowerCase();
+            console.log('Mod check:', {
+                commandName,
+                isMod,
+                context: {
+                    mod: context.mod,
+                    badges: context.badges,
+                    username: context.username
+                }
+            });
             if (!isMod) {
                 console.log(`Non-mod tried to use mod-only command: ${commandName}`);
                 return false;
@@ -110,10 +145,24 @@ async function handleCommand(client, target, context, commandText) {
         
         // Execute the command
         console.log(`Executing command: ${commandName}`);
-        return await command.execute(client, target, context, commandText);
+        try {
+            console.log('Command object:', {
+                name: command.config.name,
+                hasExecute: !!command.execute,
+                config: command.config
+            });
+            const result = await command.execute(client, target, context, commandText);
+            console.log(`Command ${commandName} execution completed with result:`, result);
+            return result;
+        } catch (error) {
+            console.error(`Error executing command ${commandName}:`, error);
+            return false;
+        }
     } catch (error) {
         console.error('Error handling command:', error);
         return false;
+    } finally {
+        console.log('=== Command Manager: handleCommand End ===');
     }
 }
 
@@ -224,6 +273,41 @@ function reloadAllCommands() {
     console.log(Array.from(aliases.entries()));
 }
 
+// Add command function
+function addCommand(command) {
+    try {
+        // Validate command structure
+        if (!command.name || !command.execute) {
+            console.error('Invalid command format - missing name or execute function');
+            return false;
+        }
+
+        // Format the command object
+        const commandObj = {
+            config: {
+                name: command.name,
+                description: command.config?.description || 'No description',
+                usage: command.config?.usage || `!${command.name}`,
+                enabled: command.config?.enabled !== false,
+                modOnly: command.config?.modOnly || false
+            },
+            execute: command.execute
+        };
+        
+        // Add the command using the lowercase name as key
+        const commandName = command.name.toLowerCase();
+        commands.set(commandName, commandObj);
+        console.log(`Added command: ${commandName}`);
+        
+        // Log current commands for debugging
+        console.log('Current commands:', Array.from(commands.keys()));
+        return true;
+    } catch (error) {
+        console.error(`Error adding command:`, error);
+        return false;
+    }
+}
+
 // Export it
 module.exports = {
     handleCommand,
@@ -232,5 +316,9 @@ module.exports = {
     listCommands,
     loadCommands,
     saveState,
-    reloadAllCommands
+    reloadAllCommands,
+    addCommand,
+    // Export the commands map for debugging
+    getCommands: () => Array.from(commands.entries()),
+    getAliases: () => Array.from(aliases.entries())
 }; 

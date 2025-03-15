@@ -1,0 +1,262 @@
+const axios = require('axios');
+
+const plugin = {
+    name: 'googletranslate',
+    version: '1.0.0',
+    description: 'Real-time chat translation using LibreTranslate',
+    author: 'MaxBot',
+    
+    // Plugin state
+    enabled: false,
+    client: null,
+    logger: null,
+    config: {
+        apiUrl: 'http://192.168.1.85:5000',  // LibreTranslate server URL
+        targetLang: 'en',                    // Default target language
+        translateAll: false,                  // Whether to translate all messages
+        apiKey: '',                          // API key if required
+        sourceLang: 'auto',                  // Auto-detect source language
+        maxRetries: 3,                       // Maximum number of retries for failed requests
+        retryDelay: 1000                     // Delay between retries in milliseconds
+    },
+    
+    // Available languages cache
+    availableLanguages: [],
+    
+    // Initialize plugin
+    init: function(client, logger) {
+        this.client = client;
+        this.logger = logger;
+        
+        // Load available languages
+        this.updateAvailableLanguages();
+    },
+    
+    // Enable plugin
+    enable: function() {
+        this.enabled = true;
+        this.logger.info('LibreTranslate plugin enabled');
+    },
+    
+    // Disable plugin
+    disable: function() {
+        this.enabled = false;
+        this.logger.info('LibreTranslate plugin disabled');
+    },
+    
+    // Update available languages from the server
+    updateAvailableLanguages: async function() {
+        try {
+            const response = await axios.get(`${this.config.apiUrl}/languages`);
+            this.availableLanguages = response.data;
+            this.logger.info(`LibreTranslate: Loaded ${this.availableLanguages.length} languages`);
+        } catch (error) {
+            this.logger.error(`LibreTranslate: Error loading languages: ${error.message}`);
+            if (error.response) {
+                this.logger.error(`LibreTranslate: Server response: ${JSON.stringify(error.response.data)}`);
+            }
+        }
+    },
+    
+    // Detect language
+    detectLanguage: async function(text) {
+        try {
+            const payload = { q: text };
+            if (this.config.apiKey) {
+                payload.api_key = this.config.apiKey;
+            }
+            
+            const response = await axios.post(`${this.config.apiUrl}/detect`, payload);
+            if (response.data && response.data.length > 0) {
+                // Return the most confident detection
+                return response.data.sort((a, b) => b.confidence - a.confidence)[0].language;
+            }
+            return 'auto';
+        } catch (error) {
+            this.logger.error(`LibreTranslate: Language detection error: ${error.message}`);
+            return 'auto';
+        }
+    },
+    
+    // Translate text with retry logic
+    translate: async function(text, sourceLang = 'auto', targetLang = this.config.targetLang) {
+        let retries = 0;
+        
+        while (retries < this.config.maxRetries) {
+            try {
+                // If source language is auto, try to detect it
+                if (sourceLang === 'auto') {
+                    sourceLang = await this.detectLanguage(text);
+                }
+                
+                // Skip translation if source and target languages are the same
+                if (sourceLang === targetLang) {
+                    return text;
+                }
+                
+                const payload = {
+                    q: text,
+                    source: sourceLang,
+                    target: targetLang,
+                    format: 'text'
+                };
+                
+                if (this.config.apiKey) {
+                    payload.api_key = this.config.apiKey;
+                }
+                
+                const response = await axios.post(`${this.config.apiUrl}/translate`, payload, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                return response.data.translatedText;
+            } catch (error) {
+                retries++;
+                this.logger.error(`LibreTranslate: Translation error (attempt ${retries}): ${error.message}`);
+                
+                if (error.response) {
+                    this.logger.error(`LibreTranslate: Server response: ${JSON.stringify(error.response.data)}`);
+                }
+                
+                if (retries < this.config.maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
+                } else {
+                    return null;
+                }
+            }
+        }
+        
+        return null;
+    },
+    
+    // Process incoming chat messages
+    processIncomingMessage: async function(messageObj) {
+        if (!this.enabled || !this.config.translateAll) {
+            return messageObj;
+        }
+        
+        try {
+            // Detect source language first
+            const sourceLang = await this.detectLanguage(messageObj.message);
+            
+            // Only translate if source language is different from target language
+            if (sourceLang !== this.config.targetLang) {
+                const translation = await this.translate(messageObj.message, sourceLang);
+                if (translation && translation !== messageObj.message) {
+                    messageObj.message = `${messageObj.message} (🌐 ${translation})`;
+                }
+            }
+        } catch (error) {
+            this.logger.error(`LibreTranslate: Error processing message: ${error.message}`);
+        }
+        
+        return messageObj;
+    },
+    
+    // Process outgoing messages
+    processOutgoingMessage: async function(messageObj) {
+        // Don't translate outgoing messages by default
+        return [messageObj];
+    },
+    
+    // Plugin commands
+    commands: {
+        '!translate': {
+            description: 'Translate text to a specified language',
+            usage: '!translate [target_lang] [text]',
+            modOnly: false,
+            handler: async (client, target, context, args) => {
+                const argArray = args.split(' ');
+                if (argArray.length < 2) {
+                    client.say(target, `@${context.username} Usage: !translate [target_lang] [text]`);
+                    return;
+                }
+                
+                const targetLang = argArray[0].toLowerCase();
+                const text = argArray.slice(1).join(' ');
+                
+                // Validate target language
+                const validLang = this.availableLanguages.find(l => l.code === targetLang);
+                if (!validLang) {
+                    client.say(target, `@${context.username} Invalid target language. Use !trlang to see available languages.`);
+                    return;
+                }
+                
+                try {
+                    // Detect source language first
+                    const sourceLang = await this.detectLanguage(text);
+                    const translation = await this.translate(text, sourceLang, targetLang);
+                    
+                    if (translation) {
+                        const langName = this.availableLanguages.find(l => l.code === targetLang)?.name || targetLang;
+                        client.say(target, `@${context.username} [${langName}] 🌐 ${translation}`);
+                    } else {
+                        client.say(target, `@${context.username} Translation failed.`);
+                    }
+                } catch (error) {
+                    client.say(target, `@${context.username} Translation error: ${error.message}`);
+                }
+            }
+        },
+        '!tr': {
+            description: 'Shorthand for translate command',
+            usage: '!tr [target_lang] [text]',
+            modOnly: false,
+            handler: async (client, target, context, args) => {
+                // Alias for !translate
+                this.commands['!translate'].handler(client, target, context, args);
+            }
+        },
+        '!trlang': {
+            description: 'List available translation languages',
+            usage: '!trlang',
+            modOnly: false,
+            handler: async (client, target, context, args) => {
+                if (this.availableLanguages.length === 0) {
+                    await this.updateAvailableLanguages();
+                }
+                const langs = this.availableLanguages.map(l => `${l.code} (${l.name})`).join(', ');
+                client.say(target, `@${context.username} Available languages: ${langs}`);
+            }
+        },
+        '!trconfig': {
+            description: 'Configure translation settings',
+            usage: '!trconfig [setting] [value]',
+            modOnly: true,
+            handler: async (client, target, context, args) => {
+                const argArray = args.split(' ');
+                if (argArray.length < 2) {
+                    client.say(target, `@${context.username} Usage: !trconfig [setting] [value]. Available settings: targetLang, translateAll`);
+                    return;
+                }
+                
+                const setting = argArray[0].toLowerCase();
+                const value = argArray[1].toLowerCase();
+                
+                switch (setting) {
+                    case 'targetlang':
+                        const validLang = this.availableLanguages.find(l => l.code === value);
+                        if (!validLang) {
+                            client.say(target, `@${context.username} Invalid language code. Use !trlang to see available languages.`);
+                            return;
+                        }
+                        this.config.targetLang = value;
+                        client.say(target, `@${context.username} Default target language set to: ${value} (${validLang.name})`);
+                        break;
+                        
+                    case 'translateall':
+                        this.config.translateAll = value === 'true';
+                        client.say(target, `@${context.username} Auto-translate all messages: ${this.config.translateAll}`);
+                        break;
+                        
+                    default:
+                        client.say(target, `@${context.username} Unknown setting. Available settings: targetLang, translateAll`);
+                }
+            }
+        }
+    }
+};
+
+module.exports = plugin; 
