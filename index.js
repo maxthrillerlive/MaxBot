@@ -137,11 +137,22 @@ client.on('message', async (channel, tags, message, self) => {
         const commandName = message.split(' ')[0].substring(1).toLowerCase();
         console.log('DIRECT HANDLER: Command name:', commandName);
         
-        // Get commands from command manager
+        // Get commands and aliases from command manager
         const commands = commandManager.getCommands();
+        const aliases = commandManager.getAliases();
         
-        // Find the command
-        const command = commands.find(([name, cmd]) => name === commandName);
+        // Find the command directly or via alias
+        let command = commands.find(([name, cmd]) => name === commandName);
+        
+        // Check aliases if command not found directly
+        if (!command) {
+            const aliasEntry = aliases.find(([alias, target]) => alias === commandName);
+            if (aliasEntry) {
+                const targetCommand = aliasEntry[1];
+                command = commands.find(([name, cmd]) => name === targetCommand);
+                console.log('DIRECT HANDLER: Found command via alias:', targetCommand);
+            }
+        }
         
         if (command) {
             console.log('DIRECT HANDLER: Found command:', command[0]);

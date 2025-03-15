@@ -1,7 +1,7 @@
 // Command configuration
 const config = {
-    name: 'roll',
-    aliases: ['dice', 'r'],  // This allows !dice and !r to work as aliases
+    name: 'dice',
+    aliases: ['roll', 'r'],  // This allows !dice and !r to work as aliases
     description: 'Roll dice with different numbers of sides (d4, d6, d8, d10, d12, d20, d100)',
     usage: '!roll or !dice [count]d[sides] (e.g., !roll 2d6)',
     cooldown: 3,
