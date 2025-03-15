@@ -525,3 +525,16 @@
 2025-03-15 03:37:55 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
 2025-03-15 03:40:39 [ERROR]: Disconnected from Twitch: Connection closed.
 2025-03-15 03:40:39 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:41:32 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:41:32 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:43:30 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:43:30 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:44:02 [ERROR]: Disconnected from Twitch: 
+2025-03-15 03:44:02 [ERROR]: Disconnected from Twitch: 
+2025-03-15 11:11:06 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 11:11:08 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 11:11:29 [ERROR]: [LibreTranslate] Error loading languages: connect ETIMEDOUT 192.168.1.85:5000
+2025-03-15 11:12:20 [ERROR]: [LibreTranslate] Detection error: connect ETIMEDOUT 192.168.1.85:5000
+2025-03-15 11:12:20 [ERROR]: [LibreTranslate] Detection error: connect ETIMEDOUT 192.168.1.85:5000
+2025-03-15 11:16:14 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 11:16:14 [ERROR]: Disconnected from Twitch: Connection closed.
