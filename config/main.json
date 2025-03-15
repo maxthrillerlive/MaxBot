@@ -14,7 +14,8 @@
   },
   "plugins": {
     "enabled": [
-      "translator"
+      "translator",
+      "libretranslate"
     ],
     "settings": {
       "translator": {

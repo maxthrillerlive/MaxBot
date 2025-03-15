@@ -319,3 +319,205 @@
 2025-03-14 20:56:31 [ERROR]: Disconnected from Twitch: 
 2025-03-14 23:43:14 [ERROR]: Disconnected from Twitch: Connection closed.
 2025-03-14 23:43:14 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 23:58:24 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 23:58:24 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:17:39 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:21:24 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:21:24 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:21:29 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:23:36 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:23:36 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:23:40 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:26:38 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:26:38 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:26:44 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:28:37 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:28:37 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:28:44 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:31:48 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:31:48 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:32:28 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:32:40 [ERROR]: [PluginManager] Error enabling plugin libretranslate: this.bot.commandManager.addCommand is not a function
+2025-03-15 00:34:29 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:34:29 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:34:36 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:34:42 [ERROR]: [PluginManager] Error enabling plugin libretranslate: this.bot.commandManager.addCommand is not a function
+2025-03-15 00:36:19 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:36:19 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:36:35 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:38:54 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:38:54 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:39:05 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:39:14 [ERROR]: [PluginManager] Error enabling plugin libretranslate: this.client.commandManager.addCommand is not a function
+2025-03-15 00:40:56 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:40:56 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:41:03 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:41:24 [ERROR]: [PluginManager] Error enabling plugin libretranslate: commandManager.addCommand is not a function
+2025-03-15 00:42:47 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:42:47 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:43:23 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:46:03 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:46:03 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:46:09 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:52:35 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:52:35 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:52:44 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 00:58:20 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:58:20 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 00:58:26 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:02:09 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:02:09 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:02:13 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:03:42 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:03:42 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:04:19 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:06:08 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:06:08 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:06:18 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:07:53 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:07:53 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:07:58 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:10:14 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:12:26 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:12:26 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:12:39 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:25:51 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:25:51 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:25:57 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:29:48 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:29:48 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:30:30 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:34:38 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:36:39 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:36:39 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:36:49 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:45:17 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:45:17 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:45:32 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:48:50 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:51:11 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:51:11 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:51:14 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 01:57:56 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:57:56 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 01:58:03 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:01:21 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:01:21 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:01:29 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:01:30 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:06:02 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:06:02 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:06:07 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:06:08 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:08:14 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:08:14 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:08:19 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:08:20 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:11:11 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:11:11 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:11:16 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:11:17 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:13:28 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:13:28 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:13:32 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:13:32 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:18:55 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:18:55 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:19:03 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:19:03 [ERROR]: [PluginManager] Error initializing plugin libretranslate: this.client.on is not a function
+2025-03-15 02:19:03 [ERROR]: [PluginManager] Error stack: TypeError: this.client.on is not a function
+    at Object.init (D:\MaxBotWS\MaxBot\plugins\libretranslate.js:83:25)
+    at PluginManager.initPlugins (D:\MaxBotWS\MaxBot\pluginManager.js:133:32)
+    at D:\MaxBotWS\MaxBot\index.js:1148:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-03-15 02:19:03 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:21:42 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:21:42 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:23:19 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:23:20 [ERROR]: [LibreTranslate] Bot does not support message events
+2025-03-15 02:23:20 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:24:09 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:24:09 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:24:17 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:24:17 [ERROR]: [LibreTranslate] Bot does not support message events
+2025-03-15 02:24:17 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:26:06 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:26:06 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:26:20 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:26:21 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:28:12 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:28:12 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:28:20 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:28:21 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:31:57 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:31:57 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:32:04 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:32:04 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:34:54 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:34:54 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:35:06 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:35:07 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:38:15 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:38:15 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:38:25 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:38:26 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:41:17 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:41:17 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:41:23 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:41:23 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:54:27 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:54:28 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:56:33 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:56:33 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 02:56:36 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:56:37 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 02:58:31 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 02:58:31 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:06:49 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:06:49 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:07:20 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:07:21 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:10:25 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:10:25 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:10:31 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:10:32 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:12:34 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:12:34 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:12:36 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:12:37 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:13:42 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:13:42 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:14:50 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:14:50 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:17:49 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:17:49 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:18:42 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:18:42 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:24:01 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:24:01 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:24:07 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:24:08 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:27:28 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:27:28 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:30:14 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:30:14 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:30:17 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:30:17 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:32:51 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:32:51 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:32:57 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:32:57 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:33:43 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:33:43 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:33:50 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:33:50 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:35:53 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:35:53 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:35:57 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:35:58 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:36:00 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:36:00 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:36:07 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 03:36:08 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 03:37:48 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 03:37:48 [ERROR]: Disconnected from Twitch: Connection closed.

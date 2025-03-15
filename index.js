@@ -122,6 +122,55 @@ if (!process.env.CHANNEL_NAME) {
 // Initialize the Twitch client using our new module
 const client = twitchAuth.initializeTwitchClient();
 
+// Add a direct message handler to the client
+client.on('message', async (channel, tags, message, self) => {
+    // Skip messages from the bot itself
+    if (self) return;
+    
+    console.log('DIRECT HANDLER: Received message:', message);
+    
+    // Process commands
+    if (message.startsWith('!')) {
+        console.log('DIRECT HANDLER: Processing command:', message);
+        
+        // Extract command name
+        const commandName = message.split(' ')[0].substring(1).toLowerCase();
+        console.log('DIRECT HANDLER: Command name:', commandName);
+        
+        // Get commands from command manager
+        const commands = commandManager.getCommands();
+        
+        // Find the command
+        const command = commands.find(([name, cmd]) => name === commandName);
+        
+        if (command) {
+            console.log('DIRECT HANDLER: Found command:', command[0]);
+            try {
+                // Execute the command directly
+                const result = await command[1].execute(client, channel, tags, message);
+                console.log('DIRECT HANDLER: Command execution result:', result);
+            } catch (error) {
+                console.error('DIRECT HANDLER: Error executing command:', error);
+            }
+        } else {
+            console.log('DIRECT HANDLER: Command not found:', commandName);
+        }
+    }
+});
+
+// Create bot object to pass to plugins
+const bot = {
+    client: client,
+    commandManager: commandManager,
+    messageHandlers: [],
+    onMessage: function(handler) {
+        this.messageHandlers.push(handler);
+    }
+};
+
+// Set bot instance in plugin manager
+pluginManager.setBot(bot);
+
 // After creating the client but before using it
 const originalSay = client.say;
 client.say = async function(target, message) {
@@ -408,7 +457,7 @@ function checkActiveTwitchConnections() {
             // Add the temporary handlers
             client.on('notice', noticeHandler);
             client.on('error', errorHandler);
-            client.on('message', messageHandler);
+client.on('message', messageHandler);
             
             // Send the PRIVMSG command
             // Format: PRIVMSG <target> :<message>
@@ -1040,12 +1089,21 @@ twitchAuth.registerEventHandlers({
             }
         });
     },
-    onMessage: (channel, tags, message, self) => {
-        // Handle message event
-        if (self) return;
+    onMessage: async (channel, tags, message, self) => {
+        // Ignore messages from the bot itself
+        if (self) {
+            console.log('Ignoring message from self:', message);
+            return;
+        }
 
         // Log chat message
         logger.chat(tags.username, message, channel);
+        console.log('Received message:', {
+            channel,
+            username: tags.username,
+            message,
+            self
+        });
 
         // Broadcast to all clients
         broadcastToAll({
@@ -1060,8 +1118,71 @@ twitchAuth.registerEventHandlers({
             }
         });
         
-        // Also process as a command if needed
-        onMessageHandler(channel, tags, message, self);
+        // Handle commands - DIRECT EXECUTION
+        if (message.startsWith('!')) {
+            console.log('=== Command Processing Start ===');
+            console.log('Command message:', message);
+            console.log('Channel:', channel);
+            console.log('User:', tags.username);
+            
+            logger.info(`[${channel}] <${tags.username}>: ${message}`, {
+                channel: channel,
+                chat: true,
+                username: tags.username
+            });
+            
+            try {
+                // Create a direct reference to the client's say method
+                const directSay = async (target, msg) => {
+                    console.log(`Directly sending message to ${target}: ${msg}`);
+                    return await client.say(target, msg);
+                };
+                
+                // Create a simple client object with just the say method
+                const simpleClient = {
+                    say: directSay
+                };
+                
+                // Execute the command directly
+                console.log('Executing command directly...');
+                
+                // Extract command name
+                const commandName = message.split(' ')[0].substring(1).toLowerCase();
+                console.log('Command name:', commandName);
+                
+                // Get the command from commandManager
+                const commands = commandManager.getCommands();
+                console.log('Available commands:', commands);
+                
+                // Find the command
+                const command = commands.find(([name, cmd]) => name === commandName);
+                
+                if (command) {
+                    console.log('Found command:', command[0]);
+                    try {
+                        // Execute the command directly
+                        const result = await command[1].execute(simpleClient, channel, tags, message);
+                        console.log('Command execution result:', result);
+                    } catch (error) {
+                        console.error('Error executing command directly:', error);
+                    }
+                } else {
+                    console.log('Command not found:', commandName);
+                }
+            } catch (error) {
+                logger.error(`Error handling command: ${error.message}`);
+                console.error('Full error:', error);
+            }
+            console.log('=== Command Processing End ===');
+        }
+        
+        // Process message through plugin manager
+        await pluginManager.processIncomingMessage({
+            target: channel,
+            context: tags,
+            message: message,
+            self: self
+        });
     }
 });
 
@@ -1114,6 +1235,50 @@ twitchAuth.connect()
         commandManager.reloadAllCommands();
         console.log('Bot connected successfully.');
         
+        // Initialize the bot object with all required components
+        const botObject = {
+            client: {
+                ...client,
+                on: (event, handler) => {
+                    if (event === 'message') {
+                        // Register the message handler with twitchAuth
+                        const wrappedHandler = (channel, tags, message, self) => {
+                            handler(channel, tags, message, self);
+                        };
+                        twitchAuth.registerEventHandlers({
+                            onMessage: wrappedHandler
+                        });
+                        // Also register with the client for direct events
+                        client.on(event, wrappedHandler);
+                    } else {
+                        // Forward other events to the client
+                        client.on(event, handler);
+                    }
+                },
+                say: client.say.bind(client)  // Ensure say method is properly bound
+            },
+            commandManager,
+            logger
+        };
+        
+        // Pass the complete bot object to plugin manager
+        pluginManager.setBot(botObject);
+        
+        // Load and initialize plugins
+        pluginManager.loadPlugins();
+        pluginManager.initPlugins();
+        
+        // Enable the translator plugin by default
+        const translatorPlugin = pluginManager.getPlugin('translator');
+        if (translatorPlugin) {
+            logger.info('Enabling translator plugin by default');
+            translatorPlugin.enable();
+            logger.info('Translator plugin enabled by default');
+        } else {
+            logger.error('Translator plugin not found! Check if the plugin file exists in the plugins directory.');
+            logger.info(`Available plugins: ${Array.from(pluginManager.getAllPlugins().map(p => p.name)).join(', ')}`);
+        }
+        
         // Start periodic connection checking
         twitchAuth.startPeriodicConnectionCheck(60000); // Check every minute
     })
@@ -1159,156 +1324,40 @@ function addToMessageCache(context, commandText) {
     return true;
 }
 
-// Called every time a message comes in
+// Update onMessageHandler to call plugin handlers
 async function onMessageHandler(target, context, msg, self) {
-    // Log all messages for debugging
-    console.log(`[CHAT] ${self ? 'BOT' : context.username}: ${msg} (in ${target})`);
+    // Log the message
+    if (msg.startsWith('!')) {
+        logger.info(`[${target}] <${context.username}>: ${msg}`, {
+            channel: target,
+            chat: true,
+            username: context.username
+        });
+        
+        // Handle commands through command manager
+        try {
+            await commandManager.handleCommand(client, target, context, msg);
+        } catch (error) {
+            logger.error(`Error handling command: ${error.message}`);
+        }
+    }
     
-    // If it's a message from the bot, we don't need to process it as a command
-    // The message will already be captured by our client.say wrapper
-    if (self) return;
-
-    // Create a message object for plugin processing
-    const messageObj = {
+    // Call all registered plugin message handlers
+    for (const handler of bot.messageHandlers) {
+        try {
+            await handler(target, context, msg, self);
+        } catch (error) {
+            logger.error(`Error in plugin message handler: ${error.message}`);
+        }
+    }
+    
+    // Process message through plugin manager
+    await pluginManager.processIncomingMessage({
         target,
         context,
         message: msg,
         self
-    };
-
-    // Process the message through plugins (for incoming translation)
-    const processedMessage = await pluginManager.processIncomingMessage(messageObj);
-    
-    // Use the processed message
-    const processedMsg = processedMessage.message;
-
-    // Remove whitespace from chat message
-    const commandText = processedMsg.trim().toLowerCase();
-    
-    // Check if the message is actually a command
-    if (!commandText.startsWith('!')) {
-        return; // Not a command, ignore
-    }
-
-    // Broadcast the command message to all WebCP clients before processing it
-    broadcastToAll({
-        type: 'CHAT_FROM_TWITCH',
-        username: context.username,
-        message: msg, // Use original message to preserve case
-        channel: target,
-        badges: context.badges || {}
     });
-
-    // Check for duplicate messages and command spam
-    if (!addToMessageCache(context, commandText)) {
-        console.log(`[DEBUG] Duplicate or rate-limited command: ${commandText}`);
-        return;
-    }
-
-    console.log(`[DEBUG] Processing command: ${commandText} from ${context.username}`);
-
-    // Special commands for managing other commands
-    const isBroadcaster = context.username.toLowerCase() === process.env.CHANNEL_NAME.toLowerCase();
-    const isMod = context.mod || isBroadcaster || context.badges?.broadcaster === '1';
-
-    // Handle mod commands first
-    if (isMod) {
-        // Add direct restart command handling
-        if (commandText === '!restart') {
-            await client.say(target, `@${context.username} Restarting the bot...`);
-            console.log(`Restart command issued by ${context.username}`);
-            
-            // Wait a moment for the message to be sent before restarting
-            setTimeout(async () => {
-                await handleRestart();
-            }, 1000);
-            return; // Exit after handling restart command
-        }
-        
-        if (commandText.startsWith('!enable ')) {
-            const commandName = commandText.split(' ')[1];
-            if (commandName.startsWith('plugin:')) {
-                // Enable a plugin
-                const pluginName = commandName.substring(7);
-                if (pluginManager.enablePlugin(pluginName)) {
-                    await client.say(target, `Enabled plugin: ${pluginName}`);
-                } else {
-                    await client.say(target, `Failed to enable plugin: ${pluginName}`);
-                }
-            } else {
-                // Enable a regular command
-                if (commandManager.enableCommand(commandName)) {
-                    await client.say(target, `Enabled command: ${commandName}`);
-                } else {
-                    await client.say(target, `Failed to enable command: ${commandName}`);
-                }
-            }
-            return; // Exit after handling mod command
-        }
-        
-        if (commandText.startsWith('!disable ')) {
-            const commandName = commandText.split(' ')[1];
-            if (commandName.startsWith('plugin:')) {
-                // Disable a plugin
-                const pluginName = commandName.substring(7);
-                if (pluginManager.disablePlugin(pluginName)) {
-                    await client.say(target, `Disabled plugin: ${pluginName}`);
-                } else {
-                    await client.say(target, `Failed to disable plugin: ${pluginName}`);
-                }
-            } else {
-                // Disable a regular command
-                if (commandManager.disableCommand(commandName)) {
-                    await client.say(target, `Disabled command: ${commandName}`);
-                } else {
-                    await client.say(target, `Failed to disable command: ${commandName}`);
-                }
-            }
-            return; // Exit after handling mod command
-        }
-        
-        // Add plugin list command
-        if (commandText === '!plugins') {
-            const plugins = pluginManager.getPluginStatus();
-            if (plugins.length === 0) {
-                await client.say(target, `@${context.username} No plugins loaded.`);
-            } else {
-                const pluginList = plugins.map(p => `${p.name} (${p.enabled ? 'enabled' : 'disabled'})`).join(', ');
-                await client.say(target, `@${context.username} Loaded plugins: ${pluginList}`);
-            }
-            return; // Exit after handling mod command
-        }
-    }
-
-    // Handle regular commands
-    try {
-        console.log(`[DEBUG] Attempting to handle command via CommandManager`);
-        
-        // Check for plugin commands first
-        const pluginCommands = pluginManager.getPluginCommands();
-        if (pluginCommands[commandText.split(' ')[0]]) {
-            const command = pluginCommands[commandText.split(' ')[0]];
-            const args = commandText.indexOf(' ') > -1 ? commandText.substring(commandText.indexOf(' ') + 1) : '';
-            
-            // Check if command is mod-only
-            if (command.modOnly && !isMod) {
-                await client.say(target, `@${context.username} This command is for moderators only.`);
-                return;
-            }
-            
-            // Execute the command
-            await command.handler(client, target, context, args);
-            console.log(`[DEBUG] Handled plugin command: ${commandText.split(' ')[0]}`);
-            return;
-        }
-        
-        // If not a plugin command, try regular commands
-        const handled = await commandManager.handleCommand(client, target, context, commandText);
-        console.log(`[DEBUG] Command handled: ${handled}`);
-    } catch (error) {
-        console.error('Error handling command:', error);
-        await client.say(target, `@${context.username} Sorry, there was an error processing your command.`);
-    }
 }
 
 async function handleExit() {
@@ -1434,7 +1483,7 @@ async function handleRestart() {
                 setTimeout(() => {
                     process.exit(0);
                 }, 1000);
-            } catch (error) {
+    } catch (error) {
                 log('ERROR: Error in restart script: ' + error.message);
                 process.exit(1);
             }
@@ -1474,35 +1523,6 @@ process.on('RESTART_BOT', async () => {
     console.log('Received RESTART_BOT event. Calling handleRestart()...');
     await handleRestart();
 });
-
-// Initialize the bot
-async function initializeBot() {
-    try {
-        // ... existing initialization code ...
-        
-        // Load and initialize plugins
-        pluginManager.setBot(client);
-        pluginManager.loadPlugins();
-        pluginManager.initPlugins();
-        
-        // Enable the translator plugin by default
-        const translatorPlugin = pluginManager.getPlugin('translator');
-        if (translatorPlugin) {
-            logger.info('Enabling translator plugin by default');
-            translatorPlugin.enable();
-            logger.info('Translator plugin enabled by default');
-        } else {
-            logger.error('Translator plugin not found! Check if the plugin file exists in the plugins directory.');
-            logger.info(`Available plugins: ${Array.from(pluginManager.getAllPlugins().map(p => p.name)).join(', ')}`);
-        }
-        
-        // ... rest of initialization code ...
-    } catch (error) {
-        console.error('Error initializing bot:', error);
-        logger.error(`Error initializing bot: ${error.message}`);
-        logger.error(`Error stack: ${error.stack}`);
-    }
-}
 
 // Add this code at the end of the file, after the initializeBot function
 // Explicitly load and enable the translator plugin
