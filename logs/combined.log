@@ -829,3 +829,13 @@
 2025-03-14 23:33:40 [INFO]: [Translator] Plugin enabled
 2025-03-14 23:33:40 [INFO]: Translator plugin enabled
 2025-03-14 23:33:40 [INFO]: Translator plugin setup complete
+2025-03-14 23:39:36 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-14 23:39:36 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-14 23:39:36 [INFO]: Translator plugin loaded: translator v1.0.0
+2025-03-14 23:39:36 [INFO]: [Translator] Plugin initialized (v1.0.0)
+2025-03-14 23:39:36 [INFO]: Translator plugin initialized
+2025-03-14 23:39:36 [INFO]: [Translator] Plugin enabled
+2025-03-14 23:39:36 [INFO]: Translator plugin enabled
+2025-03-14 23:39:36 [INFO]: Translator plugin setup complete
+2025-03-14 23:43:14 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-14 23:43:14 [ERROR]: Disconnected from Twitch: Connection closed.
