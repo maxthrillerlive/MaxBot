@@ -3682,3 +3682,440 @@ Available settings:
 2025-03-15 12:20:47 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
 2025-03-15 12:22:20 [ERROR]: Disconnected from Twitch: Connection closed.
 2025-03-15 12:22:20 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 12:25:40 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-15 12:25:40 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 12:25:40 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 12:25:40 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 12:25:41 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 12:25:41 [INFO]: [PluginManager] Loading plugins...
+2025-03-15 12:25:41 [INFO]: [PluginManager] Plugins directory found at: D:\MaxBotWS\MaxBot\plugins
+2025-03-15 12:25:41 [INFO]: [PluginManager] Found 2 plugin files: chat.js, libretranslate.js
+2025-03-15 12:25:41 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\chat.js
+2025-03-15 12:25:41 [WARN]: [PluginManager] Invalid plugin format: chat.js
+2025-03-15 12:25:41 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\libretranslate.js
+2025-03-15 12:25:41 [INFO]: [PluginManager] Plugin loaded with name: libretranslate
+2025-03-15 12:25:41 [INFO]: [PluginManager] Plugin libretranslate enabled from configuration
+2025-03-15 12:25:41 [INFO]: [PluginManager] Loaded plugin: libretranslate v1.0.0
+2025-03-15 12:25:41 [INFO]: [PluginManager] Successfully loaded 1 plugins: libretranslate
+2025-03-15 12:25:41 [INFO]: [PluginManager] Initializing plugins...
+2025-03-15 12:25:41 [INFO]: [PluginManager] Plugins to initialize: libretranslate
+2025-03-15 12:25:41 [INFO]: [PluginManager] Initializing plugin: libretranslate
+2025-03-15 12:25:41 [INFO]: [LibreTranslate] Plugin initializing...
+2025-03-15 12:25:41 [INFO]: [LibreTranslate] Using processIncomingMessage for auto-translation
+2025-03-15 12:25:41 [INFO]: [LibreTranslate] Plugin initialized successfully
+2025-03-15 12:25:41 [INFO]: [PluginManager] Initialized plugin: libretranslate
+2025-03-15 12:25:41 [INFO]: [PluginManager] Registered command: translate from plugin: libretranslate
+2025-03-15 12:25:41 [INFO]: [PluginManager] Registered command: tr from plugin: libretranslate
+2025-03-15 12:25:41 [INFO]: [PluginManager] Registered command: trlang from plugin: libretranslate
+2025-03-15 12:25:41 [INFO]: [PluginManager] Registered command: trconfig from plugin: libretranslate
+2025-03-15 12:25:41 [INFO]: [PluginManager] Plugin initialization complete. Enabled plugins: libretranslate
+2025-03-15 12:25:41 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 12:25:41 [INFO]: Available plugins: libretranslate
+2025-03-15 12:25:41 [INFO]: [LibreTranslate] Loaded 46 languages
+2025-03-15 12:25:42 [INFO]: !trconfig translateall enable 󠀀
+2025-03-15 12:25:42 [INFO]: [LibreTranslate] translateAll set to: false
+2025-03-15 12:25:51 [INFO]: !trconfig translateall enable
+2025-03-15 12:25:51 [INFO]: [LibreTranslate] translateAll set to: true
+2025-03-15 12:27:27 [INFO]: Nunca supe que te gustaban los hombres.
+2025-03-15 12:27:27 [INFO]: [LibreTranslate] Processing message for translation: Nunca supe que te gustaban los hombres.
+2025-03-15 12:27:27 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"es"}]
+2025-03-15 12:27:27 [INFO]: [LibreTranslate] Detected es with confidence 100
+2025-03-15 12:27:27 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 12:27:27 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 12:27:27 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"I never knew you liked men."}
+2025-03-15 12:27:27 [INFO]: [LibreTranslate] Translation result: I never knew you liked men.
+2025-03-15 12:27:27 [INFO]: [LibreTranslate] Sending response: rob_hino 🇪🇸 says, "I never knew you liked men."
+2025-03-15 12:27:57 [INFO]: funcionó
+2025-03-15 12:27:57 [INFO]: [LibreTranslate] Processing message for translation: funcionó
+2025-03-15 12:27:57 [INFO]: [LibreTranslate] Detection response: [{"confidence":90,"language":"es"}]
+2025-03-15 12:27:57 [INFO]: [LibreTranslate] Detected es with confidence 90
+2025-03-15 12:27:57 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 12:27:57 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 12:27:58 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"it worked"}
+2025-03-15 12:27:58 [INFO]: [LibreTranslate] Translation result: it worked
+2025-03-15 12:27:58 [INFO]: [LibreTranslate] Sending response: rob_hino 🇪🇸 says, "it worked"
+2025-03-15 12:28:15 [INFO]: !tr es I don't. you're talking about youself!
+2025-03-15 12:28:15 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 12:28:15 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 12:28:16 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"No. ¡Estás hablando de ti mismo!"}
+2025-03-15 12:28:28 [INFO]: !tr ru I don't. you're talking about youself!
+2025-03-15 12:28:28 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 12:28:28 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 12:28:28 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"Я не знаю. Ты говоришь о себе!"}
+2025-03-15 12:29:26 [INFO]: ਕੀ ਤੁਹਾਨੂੰ ਭਾਰਤੀ ਪੁਰਸ਼ ਪਸੰਦ ਹਨ?
+2025-03-15 12:29:26 [INFO]: [LibreTranslate] Processing message for translation: ਕੀ ਤੁਹਾਨੂੰ ਭਾਰਤੀ ਪੁਰਸ਼ ਪਸੰਦ ਹਨ?
+2025-03-15 12:29:26 [INFO]: [LibreTranslate] Detection response: [{"confidence":0,"language":"en"}]
+2025-03-15 12:29:26 [INFO]: [LibreTranslate] Detected en with confidence 0
+2025-03-15 12:29:26 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:29:26 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:30:20 [INFO]: No Punjabi?
+2025-03-15 12:30:20 [INFO]: [LibreTranslate] Processing message for translation: No Punjabi?
+2025-03-15 12:30:20 [INFO]: [LibreTranslate] Detection response: [{"confidence":3,"language":"en"}]
+2025-03-15 12:30:20 [INFO]: [LibreTranslate] Detected en with confidence 3
+2025-03-15 12:30:20 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:30:20 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:30:41 [INFO]: copy in google!
+2025-03-15 12:30:41 [INFO]: [LibreTranslate] Processing message for translation: copy in google!
+2025-03-15 12:30:42 [INFO]: [LibreTranslate] Detection response: [{"confidence":30,"language":"en"}]
+2025-03-15 12:30:42 [INFO]: [LibreTranslate] Detected en with confidence 30
+2025-03-15 12:30:42 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:30:42 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:32:18 [INFO]: google translate fool
+2025-03-15 12:32:18 [INFO]: [LibreTranslate] Processing message for translation: google translate fool
+2025-03-15 12:32:18 [INFO]: [LibreTranslate] Detection response: [{"confidence":86,"language":"en"}]
+2025-03-15 12:32:18 [INFO]: [LibreTranslate] Detected en with confidence 86
+2025-03-15 12:32:18 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:32:18 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:32:21 [INFO]: punjabi
+2025-03-15 12:32:21 [INFO]: [LibreTranslate] Processing message for translation: punjabi
+2025-03-15 12:32:21 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"id"}]
+2025-03-15 12:32:21 [INFO]: [LibreTranslate] Detected id with confidence 100
+2025-03-15 12:32:21 [INFO]: [LibreTranslate] Detected language: id
+2025-03-15 12:32:21 [INFO]: [LibreTranslate] Attempting translation from id to en
+2025-03-15 12:32:21 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"punjabi"}
+2025-03-15 12:32:21 [INFO]: [LibreTranslate] Translation result: punjabi
+2025-03-15 12:34:58 [INFO]: Hvað með íslenska karlmenn?
+2025-03-15 12:34:58 [INFO]: [LibreTranslate] Processing message for translation: Hvað með íslenska karlmenn?
+2025-03-15 12:34:59 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"sv"}]
+2025-03-15 12:34:59 [INFO]: [LibreTranslate] Detected sv with confidence 100
+2025-03-15 12:34:59 [INFO]: [LibreTranslate] Detected language: sv
+2025-03-15 12:34:59 [INFO]: [LibreTranslate] Attempting translation from sv to en
+2025-03-15 12:34:59 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"Hvað með Islenska Karlmenn?"}
+2025-03-15 12:34:59 [INFO]: [LibreTranslate] Translation result: Hvað með Islenska Karlmenn?
+2025-03-15 12:34:59 [INFO]: [LibreTranslate] Sending response: rob_hino 🇸🇪 says, "Hvað með Islenska Karlmenn?"
+2025-03-15 12:35:58 [INFO]: icelandic
+2025-03-15 12:35:58 [INFO]: [LibreTranslate] Processing message for translation: icelandic
+2025-03-15 12:35:58 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"it"}]
+2025-03-15 12:35:58 [INFO]: [LibreTranslate] Detected it with confidence 100
+2025-03-15 12:35:58 [INFO]: [LibreTranslate] Detected language: it
+2025-03-15 12:35:58 [INFO]: [LibreTranslate] Attempting translation from it to en
+2025-03-15 12:35:58 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"icelandic"}
+2025-03-15 12:35:58 [INFO]: [LibreTranslate] Translation result: icelandic
+2025-03-15 12:37:14 [INFO]: swedish
+2025-03-15 12:37:14 [INFO]: [LibreTranslate] Processing message for translation: swedish
+2025-03-15 12:37:14 [INFO]: [LibreTranslate] Detection response: [{"confidence":45,"language":"en"}]
+2025-03-15 12:37:14 [INFO]: [LibreTranslate] Detected en with confidence 45
+2025-03-15 12:37:14 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:37:14 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:38:40 [INFO]: 好狗。名字？看起来很美味
+2025-03-15 12:38:40 [INFO]: [LibreTranslate] Processing message for translation: 好狗。名字？看起来很美味
+2025-03-15 12:38:41 [INFO]: [LibreTranslate] Detection response: [{"confidence":90,"language":"zh"}]
+2025-03-15 12:38:41 [INFO]: [LibreTranslate] Detected zh with confidence 90
+2025-03-15 12:38:41 [INFO]: [LibreTranslate] Detected language: zh
+2025-03-15 12:38:41 [INFO]: [LibreTranslate] Attempting translation from zh to en
+2025-03-15 12:38:41 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"Good dog. Name? It looks delicious"}
+2025-03-15 12:38:41 [INFO]: [LibreTranslate] Translation result: Good dog. Name? It looks delicious
+2025-03-15 12:38:41 [INFO]: [LibreTranslate] Sending response: rob_hino 🇨🇳 says, "Good dog. Name? It looks delicious"
+2025-03-15 12:39:36 [INFO]: lol
+2025-03-15 12:39:36 [INFO]: [LibreTranslate] Processing message for translation: lol
+2025-03-15 12:39:36 [INFO]: [LibreTranslate] Detection response: [{"confidence":30,"language":"en"}]
+2025-03-15 12:39:36 [INFO]: [LibreTranslate] Detected en with confidence 30
+2025-03-15 12:39:36 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:39:36 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:39:37 [INFO]: @rob_hino you leveled up to Level 3
+2025-03-15 12:39:37 [INFO]: [LibreTranslate] Processing message for translation: @rob_hino you leveled up to Level 3
+2025-03-15 12:39:37 [INFO]: [LibreTranslate] Detection response: [{"confidence":71,"language":"en"},{"confidence":29,"language":"sl"}]
+2025-03-15 12:39:37 [INFO]: [LibreTranslate] Detected en with confidence 71
+2025-03-15 12:39:37 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:39:37 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:39:48 [INFO]: you have a LONG delay from when I send my chat
+2025-03-15 12:39:48 [INFO]: [LibreTranslate] Processing message for translation: you have a LONG delay from when I send my chat
+2025-03-15 12:39:48 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 12:39:48 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 12:39:48 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:39:48 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:41:03 [INFO]: !dice
+2025-03-15 12:41:43 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-15 12:41:43 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 12:41:43 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 12:41:43 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 12:41:44 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 12:41:44 [INFO]: [PluginManager] Loading plugins...
+2025-03-15 12:41:44 [INFO]: [PluginManager] Plugins directory found at: D:\MaxBotWS\MaxBot\plugins
+2025-03-15 12:41:44 [INFO]: [PluginManager] Found 2 plugin files: chat.js, libretranslate.js
+2025-03-15 12:41:44 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\chat.js
+2025-03-15 12:41:44 [WARN]: [PluginManager] Invalid plugin format: chat.js
+2025-03-15 12:41:44 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\libretranslate.js
+2025-03-15 12:41:44 [INFO]: [PluginManager] Plugin loaded with name: libretranslate
+2025-03-15 12:41:44 [INFO]: [PluginManager] Plugin libretranslate enabled from configuration
+2025-03-15 12:41:44 [INFO]: [PluginManager] Loaded plugin: libretranslate v1.0.0
+2025-03-15 12:41:44 [INFO]: [PluginManager] Successfully loaded 1 plugins: libretranslate
+2025-03-15 12:41:44 [INFO]: [PluginManager] Initializing plugins...
+2025-03-15 12:41:44 [INFO]: [PluginManager] Plugins to initialize: libretranslate
+2025-03-15 12:41:44 [INFO]: [PluginManager] Initializing plugin: libretranslate
+2025-03-15 12:41:44 [INFO]: [LibreTranslate] Plugin initializing...
+2025-03-15 12:41:44 [INFO]: [LibreTranslate] Using processIncomingMessage for auto-translation
+2025-03-15 12:41:44 [INFO]: [LibreTranslate] Plugin initialized successfully
+2025-03-15 12:41:44 [INFO]: [PluginManager] Initialized plugin: libretranslate
+2025-03-15 12:41:44 [INFO]: [PluginManager] Registered command: translate from plugin: libretranslate
+2025-03-15 12:41:44 [INFO]: [PluginManager] Registered command: tr from plugin: libretranslate
+2025-03-15 12:41:44 [INFO]: [PluginManager] Registered command: trlang from plugin: libretranslate
+2025-03-15 12:41:44 [INFO]: [PluginManager] Registered command: trconfig from plugin: libretranslate
+2025-03-15 12:41:44 [INFO]: [PluginManager] Plugin initialization complete. Enabled plugins: libretranslate
+2025-03-15 12:41:44 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 12:41:44 [INFO]: Available plugins: libretranslate
+2025-03-15 12:41:44 [INFO]: [LibreTranslate] Loaded 46 languages
+2025-03-15 12:42:01 [INFO]: !trconfig translateall enable
+2025-03-15 12:42:01 [INFO]: [LibreTranslate] translateAll set to: true
+2025-03-15 12:42:14 [INFO]: !dice
+2025-03-15 12:42:23 [INFO]: !hello
+2025-03-15 12:42:27 [INFO]: !help
+2025-03-15 12:42:56 [INFO]: !eable dice
+2025-03-15 12:43:03 [INFO]: !enable dice
+2025-03-15 12:43:58 [INFO]: sent you a screenshot on FB
+2025-03-15 12:43:58 [INFO]: [LibreTranslate] Processing message for translation: sent you a screenshot on FB
+2025-03-15 12:43:58 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 12:43:58 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 12:43:58 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:43:58 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:44:07 [INFO]: Way shorter delay
+2025-03-15 12:44:07 [INFO]: [LibreTranslate] Processing message for translation: Way shorter delay
+2025-03-15 12:44:07 [INFO]: [LibreTranslate] Detection response: [{"confidence":90,"language":"en"}]
+2025-03-15 12:44:07 [INFO]: [LibreTranslate] Detected en with confidence 90
+2025-03-15 12:44:07 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:44:07 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:44:45 [INFO]: maxthriller is now live! Streaming Software and Game Development: Creating a Bot to real time translate chat messages.  Come say hola!
+2025-03-15 12:44:45 [INFO]: [LibreTranslate] Processing message for translation: maxthriller is now live! Streaming Software and Game Development: Creating a Bot to real time translate chat messages.  Come say hola!
+2025-03-15 12:44:47 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 12:44:47 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 12:44:47 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:44:47 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:45:16 [INFO]: You need to make a text bot that texts opt-in people when you're LIVE NOW with a link.
+2025-03-15 12:45:16 [INFO]: [LibreTranslate] Processing message for translation: You need to make a text bot that texts opt-in people when you're LIVE NOW with a link.
+2025-03-15 12:45:16 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 12:45:16 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 12:45:16 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:45:16 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:47:27 [INFO]: !roll
+2025-03-15 12:47:30 [INFO]: !dice
+2025-03-15 12:47:46 [INFO]: !r
+2025-03-15 12:47:59 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 12:47:59 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 12:48:01 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-15 12:48:01 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 12:48:02 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 12:48:02 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 12:48:02 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 12:48:02 [INFO]: [PluginManager] Loading plugins...
+2025-03-15 12:48:02 [INFO]: [PluginManager] Plugins directory found at: D:\MaxBotWS\MaxBot\plugins
+2025-03-15 12:48:02 [INFO]: [PluginManager] Found 2 plugin files: chat.js, libretranslate.js
+2025-03-15 12:48:02 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\chat.js
+2025-03-15 12:48:02 [WARN]: [PluginManager] Invalid plugin format: chat.js
+2025-03-15 12:48:02 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\libretranslate.js
+2025-03-15 12:48:02 [INFO]: [PluginManager] Plugin loaded with name: libretranslate
+2025-03-15 12:48:02 [INFO]: [PluginManager] Plugin libretranslate enabled from configuration
+2025-03-15 12:48:02 [INFO]: [PluginManager] Loaded plugin: libretranslate v1.0.0
+2025-03-15 12:48:02 [INFO]: [PluginManager] Successfully loaded 1 plugins: libretranslate
+2025-03-15 12:48:02 [INFO]: [PluginManager] Initializing plugins...
+2025-03-15 12:48:02 [INFO]: [PluginManager] Plugins to initialize: libretranslate
+2025-03-15 12:48:02 [INFO]: [PluginManager] Initializing plugin: libretranslate
+2025-03-15 12:48:02 [INFO]: [LibreTranslate] Plugin initializing...
+2025-03-15 12:48:02 [INFO]: [LibreTranslate] Using processIncomingMessage for auto-translation
+2025-03-15 12:48:02 [INFO]: [LibreTranslate] Plugin initialized successfully
+2025-03-15 12:48:02 [INFO]: [PluginManager] Initialized plugin: libretranslate
+2025-03-15 12:48:02 [INFO]: [PluginManager] Registered command: translate from plugin: libretranslate
+2025-03-15 12:48:02 [INFO]: [PluginManager] Registered command: tr from plugin: libretranslate
+2025-03-15 12:48:02 [INFO]: [PluginManager] Registered command: trlang from plugin: libretranslate
+2025-03-15 12:48:02 [INFO]: [PluginManager] Registered command: trconfig from plugin: libretranslate
+2025-03-15 12:48:02 [INFO]: [PluginManager] Plugin initialization complete. Enabled plugins: libretranslate
+2025-03-15 12:48:02 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 12:48:02 [INFO]: Available plugins: libretranslate
+2025-03-15 12:48:02 [INFO]: [LibreTranslate] Loaded 46 languages
+2025-03-15 12:48:18 [INFO]: !trconfig translateall enable
+2025-03-15 12:48:18 [INFO]: [LibreTranslate] translateAll set to: true
+2025-03-15 12:48:23 [INFO]: !dice
+2025-03-15 12:48:28 [INFO]: !roll
+2025-03-15 12:48:31 [INFO]: !r
+2025-03-15 12:49:29 [INFO]: go test my chat bot now!
+2025-03-15 12:49:29 [INFO]: [LibreTranslate] Processing message for translation: go test my chat bot now!
+2025-03-15 12:49:29 [INFO]: [LibreTranslate] Detection response: [{"confidence":86,"language":"en"},{"confidence":14,"language":"pl"}]
+2025-03-15 12:49:29 [INFO]: [LibreTranslate] Detected en with confidence 86
+2025-03-15 12:49:29 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:49:29 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:50:32 [INFO]: ***
+2025-03-15 12:50:32 [INFO]: [LibreTranslate] Processing message for translation: ***
+2025-03-15 12:50:32 [INFO]: [LibreTranslate] Detection response: [{"confidence":2,"language":"en"}]
+2025-03-15 12:50:32 [INFO]: [LibreTranslate] Detected en with confidence 2
+2025-03-15 12:50:32 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:50:32 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:50:52 [INFO]: rob
+2025-03-15 12:50:52 [INFO]: [LibreTranslate] Processing message for translation: rob
+2025-03-15 12:50:52 [INFO]: [LibreTranslate] Detection response: [{"confidence":4,"language":"en"}]
+2025-03-15 12:50:52 [INFO]: [LibreTranslate] Detected en with confidence 4
+2025-03-15 12:50:52 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:50:52 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:50:56 [INFO]: hino
+2025-03-15 12:50:56 [INFO]: [LibreTranslate] Processing message for translation: hino
+2025-03-15 12:50:56 [INFO]: [LibreTranslate] Detection response: [{"confidence":86,"language":"tl"}]
+2025-03-15 12:50:56 [INFO]: [LibreTranslate] Detected tl with confidence 86
+2025-03-15 12:50:56 [INFO]: [LibreTranslate] Detected language: tl
+2025-03-15 12:50:56 [INFO]: [LibreTranslate] Attempting translation from tl to en
+2025-03-15 12:50:56 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"hino"}
+2025-03-15 12:50:56 [INFO]: [LibreTranslate] Translation result: hino
+2025-03-15 12:50:58 [INFO]: dot
+2025-03-15 12:50:58 [INFO]: [LibreTranslate] Processing message for translation: dot
+2025-03-15 12:50:58 [INFO]: [LibreTranslate] Detection response: [{"confidence":22,"language":"en"}]
+2025-03-15 12:50:58 [INFO]: [LibreTranslate] Detected en with confidence 22
+2025-03-15 12:50:58 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:50:58 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:51:46 [INFO]: com
+2025-03-15 12:51:46 [INFO]: [LibreTranslate] Processing message for translation: com
+2025-03-15 12:51:47 [INFO]: [LibreTranslate] Detection response: [{"confidence":15,"language":"en"}]
+2025-03-15 12:51:47 [INFO]: [LibreTranslate] Detected en with confidence 15
+2025-03-15 12:51:47 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 12:51:47 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 12:54:58 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 12:54:58 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 12:55:02 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-15 12:55:02 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 12:55:02 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 12:55:02 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 12:55:03 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 12:55:03 [INFO]: [PluginManager] Loading plugins...
+2025-03-15 12:55:03 [INFO]: [PluginManager] Plugins directory found at: D:\MaxBotWS\MaxBot\plugins
+2025-03-15 12:55:03 [INFO]: [PluginManager] Found 2 plugin files: chat.js, libretranslate.js
+2025-03-15 12:55:03 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\chat.js
+2025-03-15 12:55:03 [WARN]: [PluginManager] Invalid plugin format: chat.js
+2025-03-15 12:55:03 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\libretranslate.js
+2025-03-15 12:55:03 [INFO]: [PluginManager] Plugin loaded with name: libretranslate
+2025-03-15 12:55:03 [INFO]: [PluginManager] Plugin libretranslate enabled from configuration
+2025-03-15 12:55:03 [INFO]: [PluginManager] Loaded plugin: libretranslate v1.0.0
+2025-03-15 12:55:03 [INFO]: [PluginManager] Successfully loaded 1 plugins: libretranslate
+2025-03-15 12:55:03 [INFO]: [PluginManager] Initializing plugins...
+2025-03-15 12:55:03 [INFO]: [PluginManager] Plugins to initialize: libretranslate
+2025-03-15 12:55:03 [INFO]: [PluginManager] Initializing plugin: libretranslate
+2025-03-15 12:55:03 [INFO]: [LibreTranslate] Plugin initializing...
+2025-03-15 12:55:03 [INFO]: [LibreTranslate] Using processIncomingMessage for auto-translation
+2025-03-15 12:55:03 [INFO]: [LibreTranslate] Plugin initialized successfully
+2025-03-15 12:55:03 [INFO]: [PluginManager] Initialized plugin: libretranslate
+2025-03-15 12:55:03 [INFO]: [PluginManager] Registered command: translate from plugin: libretranslate
+2025-03-15 12:55:03 [INFO]: [PluginManager] Registered command: tr from plugin: libretranslate
+2025-03-15 12:55:03 [INFO]: [PluginManager] Registered command: trlang from plugin: libretranslate
+2025-03-15 12:55:03 [INFO]: [PluginManager] Registered command: trconfig from plugin: libretranslate
+2025-03-15 12:55:03 [INFO]: [PluginManager] Plugin initialization complete. Enabled plugins: libretranslate
+2025-03-15 12:55:03 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 12:55:03 [INFO]: Available plugins: libretranslate
+2025-03-15 12:55:07 [INFO]: [LibreTranslate] Loaded 46 languages
+2025-03-15 12:55:30 [INFO]: try now
+2025-03-15 12:55:34 [INFO]: !dice
+2025-03-15 12:55:37 [INFO]: !roll
+2025-03-15 13:01:30 [INFO]: nah it's just inspector
+2025-03-15 13:02:08 [INFO]: alright close my site out!
+2025-03-15 13:02:30 [INFO]: youre blowing up my servers
+2025-03-15 13:04:34 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 13:04:34 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 13:04:44 [INFO]: Loaded main configuration from D:\MaxBotWS\MaxBot\config\main.json
+2025-03-15 13:04:44 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 13:04:44 [INFO]: Loading translator plugin from: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 13:04:44 [ERROR]: Translator plugin file not found at: D:\MaxBotWS\MaxBot\plugins\translator.js
+2025-03-15 13:04:44 [INFO]: [PluginManager] Bot and command manager set
+2025-03-15 13:04:44 [INFO]: [PluginManager] Loading plugins...
+2025-03-15 13:04:44 [INFO]: [PluginManager] Plugins directory found at: D:\MaxBotWS\MaxBot\plugins
+2025-03-15 13:04:44 [INFO]: [PluginManager] Found 2 plugin files: chat.js, libretranslate.js
+2025-03-15 13:04:44 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\chat.js
+2025-03-15 13:04:44 [WARN]: [PluginManager] Invalid plugin format: chat.js
+2025-03-15 13:04:44 [INFO]: [PluginManager] Loading plugin from: D:\MaxBotWS\MaxBot\plugins\libretranslate.js
+2025-03-15 13:04:45 [INFO]: [PluginManager] Plugin loaded with name: libretranslate
+2025-03-15 13:04:45 [INFO]: [PluginManager] Plugin libretranslate enabled from configuration
+2025-03-15 13:04:45 [INFO]: [PluginManager] Loaded plugin: libretranslate v1.0.0
+2025-03-15 13:04:45 [INFO]: [PluginManager] Successfully loaded 1 plugins: libretranslate
+2025-03-15 13:04:45 [INFO]: [PluginManager] Initializing plugins...
+2025-03-15 13:04:45 [INFO]: [PluginManager] Plugins to initialize: libretranslate
+2025-03-15 13:04:45 [INFO]: [PluginManager] Initializing plugin: libretranslate
+2025-03-15 13:04:45 [INFO]: [LibreTranslate] Plugin initializing...
+2025-03-15 13:04:45 [INFO]: [LibreTranslate] Using processIncomingMessage for auto-translation
+2025-03-15 13:04:45 [INFO]: [LibreTranslate] Plugin initialized successfully
+2025-03-15 13:04:45 [INFO]: [PluginManager] Initialized plugin: libretranslate
+2025-03-15 13:04:45 [INFO]: [PluginManager] Registered command: translate from plugin: libretranslate
+2025-03-15 13:04:45 [INFO]: [PluginManager] Registered command: tr from plugin: libretranslate
+2025-03-15 13:04:45 [INFO]: [PluginManager] Registered command: trlang from plugin: libretranslate
+2025-03-15 13:04:45 [INFO]: [PluginManager] Registered command: trconfig from plugin: libretranslate
+2025-03-15 13:04:45 [INFO]: [PluginManager] Plugin initialization complete. Enabled plugins: libretranslate
+2025-03-15 13:04:45 [ERROR]: Translator plugin not found! Check if the plugin file exists in the plugins directory.
+2025-03-15 13:04:45 [INFO]: Available plugins: libretranslate
+2025-03-15 13:04:45 [INFO]: [LibreTranslate] Loaded 46 languages
+2025-03-15 13:05:46 [INFO]: alright I'm out homie
+2025-03-15 13:05:54 [INFO]: !roll
+2025-03-15 13:06:02 [INFO]: !trconfig translateall enable
+2025-03-15 13:06:02 [INFO]: [LibreTranslate] translateAll set to: true
+2025-03-15 13:06:07 [INFO]: !dice
+2025-03-15 13:06:13 [INFO]: !roll
+2025-03-15 13:06:21 [INFO]: !roll 2d6
+2025-03-15 13:06:32 [INFO]: !dice 2d10
+2025-03-15 13:06:42 [INFO]: !roll list
+2025-03-15 13:06:53 [INFO]: !suck
+2025-03-15 13:06:55 [INFO]: !roll 1d5
+2025-03-15 13:07:22 [INFO]: !hola
+2025-03-15 13:07:30 [INFO]: !hello
+2025-03-15 13:08:24 [INFO]: ¡Felicitaciones!
+2025-03-15 13:08:24 [INFO]: [LibreTranslate] Processing message for translation: ¡Felicitaciones!
+2025-03-15 13:08:24 [INFO]: [LibreTranslate] Detection response: [{"confidence":2,"language":"en"}]
+2025-03-15 13:08:24 [INFO]: [LibreTranslate] Detected en with confidence 2
+2025-03-15 13:08:24 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:08:24 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:08:31 [INFO]: Cheap ̔Viewers on  streamboo .com ( remove the space )  @V6iT7o66
+2025-03-15 13:08:31 [INFO]: [LibreTranslate] Processing message for translation: Cheap ̔Viewers on  streamboo .com ( remove the space )  @V6iT7o66
+2025-03-15 13:08:31 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 13:08:31 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 13:08:31 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:08:31 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:09:03 [INFO]: Felicitaciones!
+2025-03-15 13:09:03 [INFO]: [LibreTranslate] Processing message for translation: Felicitaciones!
+2025-03-15 13:09:03 [INFO]: [LibreTranslate] Detection response: [{"confidence":90,"language":"es"}]
+2025-03-15 13:09:03 [INFO]: [LibreTranslate] Detected es with confidence 90
+2025-03-15 13:09:03 [INFO]: [LibreTranslate] Detected language: es
+2025-03-15 13:09:03 [INFO]: [LibreTranslate] Attempting translation from es to en
+2025-03-15 13:09:03 [INFO]: [LibreTranslate] Translation API response: {"translatedText":"Congratulations!"}
+2025-03-15 13:09:03 [INFO]: [LibreTranslate] Translation result: Congratulations!
+2025-03-15 13:09:03 [INFO]: [LibreTranslate] Sending response: rob_hino 🇪🇸 says, "Congratulations!"
+2025-03-15 13:09:08 [INFO]: yeah
+2025-03-15 13:09:08 [INFO]: [LibreTranslate] Processing message for translation: yeah
+2025-03-15 13:09:08 [INFO]: [LibreTranslate] Detection response: [{"confidence":3,"language":"en"}]
+2025-03-15 13:09:08 [INFO]: [LibreTranslate] Detected en with confidence 3
+2025-03-15 13:09:08 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:09:08 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:09:13 [INFO]: it's a spam bot
+2025-03-15 13:09:13 [INFO]: [LibreTranslate] Processing message for translation: it's a spam bot
+2025-03-15 13:09:14 [INFO]: [LibreTranslate] Detection response: [{"confidence":90,"language":"en"}]
+2025-03-15 13:09:14 [INFO]: [LibreTranslate] Detected en with confidence 90
+2025-03-15 13:09:14 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:09:14 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:09:40 [INFO]: !timeout @scientificliana
+2025-03-15 13:09:47 [INFO]: you should just a bot army to watch your videos!
+2025-03-15 13:09:47 [INFO]: [LibreTranslate] Processing message for translation: you should just a bot army to watch your videos!
+2025-03-15 13:09:48 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 13:09:48 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 13:09:48 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:09:48 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:09:55 [INFO]: *make
+2025-03-15 13:09:55 [INFO]: [LibreTranslate] Processing message for translation: *make
+2025-03-15 13:09:55 [INFO]: [LibreTranslate] Detection response: [{"confidence":7,"language":"en"}]
+2025-03-15 13:09:55 [INFO]: [LibreTranslate] Detected en with confidence 7
+2025-03-15 13:09:55 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:09:55 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:10:56 [INFO]: I know what it is
+2025-03-15 13:10:56 [INFO]: [LibreTranslate] Processing message for translation: I know what it is
+2025-03-15 13:10:57 [INFO]: [LibreTranslate] Detection response: [{"confidence":4,"language":"en"}]
+2025-03-15 13:10:57 [INFO]: [LibreTranslate] Detected en with confidence 4
+2025-03-15 13:10:57 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:10:57 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:11:16 [INFO]: you need an audio notification when chats come through
+2025-03-15 13:11:16 [INFO]: [LibreTranslate] Processing message for translation: you need an audio notification when chats come through
+2025-03-15 13:11:16 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 13:11:16 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 13:11:16 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:11:16 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:11:27 [INFO]: takes you forever to respond
+2025-03-15 13:11:27 [INFO]: [LibreTranslate] Processing message for translation: takes you forever to respond
+2025-03-15 13:11:27 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 13:11:27 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 13:11:27 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:11:27 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:13:23 [INFO]: alright I'm heading out
+2025-03-15 13:13:23 [INFO]: [LibreTranslate] Processing message for translation: alright I'm heading out
+2025-03-15 13:13:23 [INFO]: [LibreTranslate] Detection response: [{"confidence":100,"language":"en"}]
+2025-03-15 13:13:23 [INFO]: [LibreTranslate] Detected en with confidence 100
+2025-03-15 13:13:23 [INFO]: [LibreTranslate] Detected language: en
+2025-03-15 13:13:23 [INFO]: [LibreTranslate] Skipping translation - same language or auto-detect failed
+2025-03-15 13:21:48 [ERROR]: Disconnected from Twitch: Connection closed.
+2025-03-15 13:21:48 [ERROR]: Disconnected from Twitch: Connection closed.
