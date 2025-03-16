@@ -173,7 +173,7 @@ const plugin = {
                 // Send the message
                 await this.client.say(messageObj.channel, message);
                 
-                // Record the shoutout in history
+                // Record the shoutout in history (only for streamers)
                 this.recordShoutout(username);
             } else {
                 // Use the regular shoutout function if no custom message
@@ -185,7 +185,7 @@ const plugin = {
     },
     
     // Perform a shoutout for a user
-    doShoutout: async function(client, channel, username) {
+    doShoutout: async function(client, channel, username, forceStreamer = false) {
         try {
             // Log the shoutout
             this.logger.info(`[Shoutout] Shouting out ${username}`);
@@ -194,7 +194,7 @@ const plugin = {
             this.reloadConfig();
             
             // Determine if the user is a streamer based on history or known streamers
-            const isStreamer = this.isStreamer(username);
+            const isStreamer = forceStreamer || this.isStreamer(username);
             this.logger.info(`[Shoutout] User ${username} is ${isStreamer ? 'a streamer' : 'not a streamer'}`);
             
             // Log the current config
@@ -225,8 +225,12 @@ const plugin = {
             // Send the message
             await client.say(channel, message);
             
-            // Record the shoutout in history
-            this.recordShoutout(username);
+            // Record the shoutout in history (only for streamers)
+            if (isStreamer) {
+                this.recordShoutout(username);
+            } else {
+                this.logger.info(`[Shoutout] Not recording ${username} in history as they are not a streamer`);
+            }
             
             return true;
         } catch (error) {
@@ -276,31 +280,33 @@ const plugin = {
     
     // Record a shoutout in history
     recordShoutout: function(username) {
-        const now = Date.now();
-        const lowerUsername = username.toLowerCase();
-        
-        // Create or update history entry
-        if (!this.history[lowerUsername]) {
+        try {
+            // Only record streamers in the history
+            if (!this.isStreamer(username)) {
+                this.logger.info(`[Shoutout] Not recording ${username} in history as they are not a streamer`);
+                return;
+            }
+            
+            // Convert username to lowercase for case-insensitive comparison
+            const lowerUsername = username.toLowerCase();
+            
+            // Get the current time
+            const now = Date.now();
+            
+            // Create or update the history entry
             this.history[lowerUsername] = {
                 displayName: username,
                 lastShoutout: now,
-                url: `https://twitch.tv/${lowerUsername}`
+                url: `https://twitch.tv/${username}`
             };
-        } else {
-            this.history[lowerUsername].lastShoutout = now;
             
-            // Ensure displayName is set
-            if (!this.history[lowerUsername].displayName) {
-                this.history[lowerUsername].displayName = username;
-            }
+            // Save the history to file
+            this.saveHistory();
             
-            // Ensure URL is set
-            if (!this.history[lowerUsername].url) {
-                this.history[lowerUsername].url = `https://twitch.tv/${lowerUsername}`;
-            }
+            this.logger.info(`[Shoutout] Recorded shoutout for ${username}`);
+        } catch (error) {
+            this.logger.error(`[Shoutout] Error recording shoutout:`, error);
         }
-        
-        this.saveHistory();
     },
     
     // Load shoutout history from file
