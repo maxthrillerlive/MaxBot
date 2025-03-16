@@ -14,7 +14,6 @@ class PluginManager {
     this.pluginsDir = path.join(__dirname, 'plugins');
     this.bot = null;
     this.configManager = configManager;
-    this.commandManager = null;
     
     // Bind methods
     this.loadPlugins = this.loadPlugins.bind(this);
@@ -33,7 +32,6 @@ class PluginManager {
    */
   setBot(bot) {
     this.bot = bot;
-    this.commandManager = bot.commandManager;
   }
   
   /**
@@ -148,6 +146,8 @@ class PluginManager {
         
         // Register plugin commands if available
         if (plugin.commands && Array.isArray(plugin.commands)) {
+          this.logger.info(`[PluginManager] Registering ${plugin.commands.length} commands from plugin ${plugin.name}`);
+          
           for (const command of plugin.commands) {
             if (command && command.name && command.execute) {
               // Set default prefix if not specified

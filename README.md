@@ -15,6 +15,7 @@ A customizable Twitch chat bot with WebSocket API support.
 
 1. Install dependencies:
 ```bash
+npm dotenv
 npm install
 ```
 
