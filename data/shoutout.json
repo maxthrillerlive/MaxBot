@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "autoShoutout": true,
+  "cooldownMinutes": 60,
+  "excludedUsers": []
+}

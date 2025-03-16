@@ -18,6 +18,36 @@ const config = {
 
 // Path to the shoutout history file
 const shoutoutHistoryPath = path.join(__dirname, '..', 'config', 'shoutout-history.json');
+const shoutoutConfigPath = path.join(__dirname, '..', 'config', 'shoutout.json');
+
+// Default configuration
+let shoutoutConfig = {
+    autoShoutout: {
+        enabled: true,
+        cooldownHours: 24,
+        welcomeMessage: "Welcome back to the channel!"
+    },
+    messages: {
+        streamer: "🎮 Check out @{displayName} over at {url} - {gameInfo} 👍",
+        nonStreamer: "💖 Shoutout to @{displayName} - Thanks for being an awesome part of our community! 💖",
+        announcement: "📢 Announcement"
+    }
+};
+
+// Load shoutout configuration
+try {
+    if (fs.existsSync(shoutoutConfigPath)) {
+        const loadedConfig = JSON.parse(fs.readFileSync(shoutoutConfigPath, 'utf8'));
+        shoutoutConfig = { ...shoutoutConfig, ...loadedConfig };
+        console.log('Loaded shoutout configuration');
+    } else {
+        // Create the config file if it doesn't exist
+        fs.writeFileSync(shoutoutConfigPath, JSON.stringify(shoutoutConfig, null, 2));
+        console.log('Created new shoutout configuration file');
+    }
+} catch (error) {
+    console.error('Error loading shoutout configuration:', error);
+}
 
 // Load shoutout history
 let shoutoutHistory = {};
@@ -65,6 +95,11 @@ function saveToShoutoutHistory(username, channelInfo) {
  * @returns {boolean} - Whether the user should receive an auto-shoutout
  */
 function shouldAutoShoutout(username) {
+    // If auto-shoutouts are disabled, always return false
+    if (!shoutoutConfig.autoShoutout.enabled) {
+        return false;
+    }
+    
     const lowerUsername = username.toLowerCase();
     return shoutoutHistory.hasOwnProperty(lowerUsername);
 }
@@ -169,12 +204,12 @@ async function getChannelInfo(username) {
  */
 function createShoutoutMessage(username, channelInfo, customMessage = '') {
     // Start with the announcement header
-    let message = '📢 Announcement\n';
+    let message = `${shoutoutConfig.messages.announcement}\n`;
     
     // If we couldn't get channel info, create a community member shoutout
     if (!channelInfo) {
         // Use community member format instead of streamer format
-        message += `💖 Shoutout to @${username} - Thanks for being an awesome part of our community! 💖`;
+        message += shoutoutConfig.messages.nonStreamer.replace('{displayName}', username);
         
         // Add note about missing API credentials if appropriate
         console.log('Note: For game information and live status, set CLIENT_ID and CLIENT_SECRET in your .env file');
@@ -187,18 +222,19 @@ function createShoutoutMessage(username, channelInfo, customMessage = '') {
     
     if (isStreamer) {
         // Create a streamer shoutout message
-        message += `🎮 Check out @${channelInfo.displayName} over at ${channelInfo.url}`;
-        
-        // Add game info if available
+        let gameInfo = '';
         if (channelInfo.game) {
             if (channelInfo.isLive) {
-                message += ` - currently playing ${channelInfo.game} 👍`;
+                gameInfo = `currently playing ${channelInfo.game}`;
             } else {
-                message += ` - They were last seen playing ${channelInfo.game} 👍`;
+                gameInfo = `They were last seen playing ${channelInfo.game}`;
             }
-        } else {
-            message += ` 👍`;
         }
+        
+        message += shoutoutConfig.messages.streamer
+            .replace('{displayName}', channelInfo.displayName)
+            .replace('{url}', channelInfo.url)
+            .replace('{gameInfo}', gameInfo);
         
         // If custom message is provided, append it
         if (customMessage) {
@@ -206,7 +242,7 @@ function createShoutoutMessage(username, channelInfo, customMessage = '') {
         }
     } else {
         // Create a non-streamer community member shoutout
-        message += `💖 Shoutout to @${channelInfo.displayName} - Thanks for being an awesome part of our community! 💖`;
+        message += shoutoutConfig.messages.nonStreamer.replace('{displayName}', channelInfo.displayName);
     }
     
     return message;
@@ -235,9 +271,14 @@ async function execute(client, channel, context, args) {
             argsArray = [];
         }
         
+        // Check for configuration commands
+        if (argsArray.length > 0 && argsArray[0].toLowerCase() === 'config') {
+            return await handleConfigCommand(client, channel, context, argsArray.slice(1));
+        }
+        
         // Check if a username was provided
         if (!argsArray || argsArray.length === 0) {
-            await client.say(channel, `@${context.username} Usage: !so <username> [custom message]`);
+            await client.say(channel, `@${context.username} Usage: !so <username> [custom message] or !so config [setting] [value]`);
             return false;
         }
         
@@ -277,6 +318,82 @@ async function execute(client, channel, context, args) {
 }
 
 /**
+ * Handle configuration commands for the shoutout command
+ * @param {Object} client - The TMI client
+ * @param {string} channel - The channel where the command was used
+ * @param {Object} context - The context of the message
+ * @param {Array} args - The arguments passed to the command
+ * @returns {Promise<boolean>} - Whether the command was executed successfully
+ */
+async function handleConfigCommand(client, channel, context, args) {
+    // Check if the user is a mod or broadcaster
+    const isMod = context.mod || context.badges?.broadcaster === '1';
+    if (!isMod) {
+        await client.say(channel, `@${context.username} You must be a moderator to configure the shoutout command.`);
+        return false;
+    }
+    
+    // If no arguments, show current configuration
+    if (args.length === 0) {
+        const autoShoutoutStatus = shoutoutConfig.autoShoutout.enabled ? 'enabled' : 'disabled';
+        const cooldownHours = shoutoutConfig.autoShoutout.cooldownHours;
+        await client.say(channel, `@${context.username} Shoutout configuration: Auto-shoutouts are ${autoShoutoutStatus} with a ${cooldownHours} hour cooldown.`);
+        return true;
+    }
+    
+    // Handle specific configuration commands
+    const setting = args[0].toLowerCase();
+    
+    if (setting === 'auto' || setting === 'autoshoutout') {
+        if (args.length < 2) {
+            const status = shoutoutConfig.autoShoutout.enabled ? 'enabled' : 'disabled';
+            await client.say(channel, `@${context.username} Auto-shoutouts are currently ${status}. Use !so config auto enable/disable to change.`);
+            return true;
+        }
+        
+        const value = args[1].toLowerCase();
+        if (value === 'enable' || value === 'on' || value === 'true') {
+            shoutoutConfig.autoShoutout.enabled = true;
+            await client.say(channel, `@${context.username} Auto-shoutouts have been enabled.`);
+        } else if (value === 'disable' || value === 'off' || value === 'false') {
+            shoutoutConfig.autoShoutout.enabled = false;
+            await client.say(channel, `@${context.username} Auto-shoutouts have been disabled.`);
+        } else {
+            await client.say(channel, `@${context.username} Invalid value. Use enable or disable.`);
+            return false;
+        }
+        
+        // Save the updated configuration
+        fs.writeFileSync(shoutoutConfigPath, JSON.stringify(shoutoutConfig, null, 2));
+        return true;
+    }
+    
+    if (setting === 'cooldown') {
+        if (args.length < 2) {
+            await client.say(channel, `@${context.username} Current cooldown is ${shoutoutConfig.autoShoutout.cooldownHours} hours. Use !so config cooldown <hours> to change.`);
+            return true;
+        }
+        
+        const hours = parseInt(args[1]);
+        if (isNaN(hours) || hours < 1) {
+            await client.say(channel, `@${context.username} Invalid cooldown. Please specify a number of hours greater than 0.`);
+            return false;
+        }
+        
+        shoutoutConfig.autoShoutout.cooldownHours = hours;
+        await client.say(channel, `@${context.username} Auto-shoutout cooldown set to ${hours} hours.`);
+        
+        // Save the updated configuration
+        fs.writeFileSync(shoutoutConfigPath, JSON.stringify(shoutoutConfig, null, 2));
+        return true;
+    }
+    
+    // If we get here, the setting wasn't recognized
+    await client.say(channel, `@${context.username} Unknown setting. Available settings: auto, cooldown`);
+    return false;
+}
+
+/**
  * Process an incoming message to check for auto-shoutouts
  * @param {Object} client - The TMI client
  * @param {string} channel - The channel where the message was sent
@@ -292,6 +409,11 @@ async function processMessage(client, channel, tags, message, self) {
     // Skip messages that are commands
     if (message.startsWith('!')) return;
     
+    // Skip if auto-shoutouts are disabled
+    if (!shoutoutConfig.autoShoutout.enabled) {
+        return;
+    }
+    
     const username = tags.username.toLowerCase();
     
     // Check if this user should receive an auto-shoutout
@@ -299,9 +421,9 @@ async function processMessage(client, channel, tags, message, self) {
         // Get the streamer info from history
         const streamerInfo = shoutoutHistory[username];
         
-        // Check if it's been at least 24 hours since their last shoutout
+        // Check if it's been at least the configured cooldown hours since their last shoutout
         const hoursSinceLastShoutout = (Date.now() - streamerInfo.lastShoutout) / (1000 * 60 * 60);
-        if (hoursSinceLastShoutout >= 24) {
+        if (hoursSinceLastShoutout >= shoutoutConfig.autoShoutout.cooldownHours) {
             console.log(`[AUTO-SHOUTOUT] Checking returning user: ${username}`);
             
             // Get fresh channel info
@@ -312,7 +434,7 @@ async function processMessage(client, channel, tags, message, self) {
                 console.log(`[AUTO-SHOUTOUT] Giving auto-shoutout to returning streamer: ${username}`);
                 
                 // Create and send the shoutout message
-                const shoutoutMessage = createShoutoutMessage(username, channelInfo, 'Welcome back to the channel!');
+                const shoutoutMessage = createShoutoutMessage(username, channelInfo, shoutoutConfig.autoShoutout.welcomeMessage);
                 await client.say(channel, shoutoutMessage);
                 
                 // Update the last shoutout time

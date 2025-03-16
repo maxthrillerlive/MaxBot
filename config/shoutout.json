@@ -1,0 +1,12 @@
+{
+  "autoShoutout": {
+    "enabled": true,
+    "cooldownHours": 24,
+    "welcomeMessage": "Welcome back to the channel!"
+  },
+  "messages": {
+    "streamer": "🎮 Check out @{displayName} over at {url} - {gameInfo} 👍",
+    "nonStreamer": "💖 Shoutout to @{displayName} - Thanks for being an awesome part of our community! 💖",
+    "announcement": "📢 Announcement"
+  }
+} 

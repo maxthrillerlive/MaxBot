@@ -1,6 +1,5 @@
 {
   "enabled": [
-    "translator",
     "libretranslate"
   ],
   "settings": {
@@ -12,7 +11,14 @@
       "outgoingLanguages": [
         "es",
         "fr"
-      ]
+      ],
+      "enabled": false
+    },
+    "libretranslate": {
+      "enabled": true,
+      "translateAll": false,
+      "defaultTargetLanguage": "en",
+      "apiUrl": "https://libretranslate.com/translate"
     }
   }
 }

@@ -13,7 +13,7 @@ class ConfigManager {
   constructor(logger) {
     this.logger = logger || console;
     this.configDir = path.join(__dirname, 'config');
-    this.mainConfigPath = path.join(this.configDir, 'main.json');
+    this.mainConfigPath = path.join(this.configDir, 'maxbot.json');
     this.botConfigPath = path.join(this.configDir, 'bot.json');
     this.webcpConfigPath = path.join(this.configDir, 'webcp.json');
     this.pluginsConfigPath = path.join(this.configDir, 'plugins.json');
@@ -91,7 +91,7 @@ class ConfigManager {
         if (mainConfig) {
           // If main config exists, use it as the base
           this.config = this.mergeConfigs(this.config, mainConfig);
-          this.logger.info(`Loaded main configuration from ${this.mainConfigPath}`);
+          this.logger.info(`Loaded MaxBot configuration from ${this.mainConfigPath}`);
           return this.config;
         }
       }
@@ -165,7 +165,7 @@ class ConfigManager {
       this.saveConfigSection('commands', this.commandsConfigPath);
       this.saveConfigSection('features', this.featuresConfigPath);
       
-      // Save the complete configuration to main.json
+      // Save the complete configuration to maxbot.json
       this.saveConfigFile(this.mainConfigPath, this.config);
       
       this.logger.info(`Configuration saved to ${this.configDir}`);

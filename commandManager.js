@@ -5,6 +5,7 @@ const path = require('path');
 const commands = new Map();
 const aliases = new Map();
 const commandStates = new Map();
+const pluginCommands = new Map(); // Track which commands came from which plugins
 
 // Load commands from the commands directory
 function loadCommands() {
@@ -24,9 +25,16 @@ function loadCommands() {
     const commandFiles = files.filter(file => file.endsWith('.js'));
     console.log('Command files found:', commandFiles);
     
-    // Clear existing commands and aliases
+    // Clear existing commands and aliases (except plugin commands)
+    // We'll keep plugin commands since they're managed by the plugin manager
+    const pluginCommandEntries = Array.from(pluginCommands.entries());
     commands.clear();
     aliases.clear();
+    
+    // Restore plugin commands
+    for (const [pluginName, cmdNames] of pluginCommandEntries) {
+        pluginCommands.set(pluginName, []); // Reset the list for this plugin
+    }
     
     for (const file of commandFiles) {
         try {
@@ -111,10 +119,11 @@ async function handleCommand(client, target, context, commandText) {
             return false;
         }
         
-        // Check if prefix matches (plugins use ?, regular commands use !)
+        // Check if prefix matches (plugins use ? or !, regular commands use !)
         const expectedPrefix = command.config?.prefix || '!';
-        if (prefix !== expectedPrefix) {
-            console.log(`Wrong prefix for command ${commandName}. Expected: ${expectedPrefix}, got: ${prefix}`);
+        // Allow both ! and ? for all commands for better compatibility
+        if (prefix !== '!' && prefix !== '?') {
+            console.log(`Invalid prefix for command ${commandName}. Expected: ! or ?, got: ${prefix}`);
             return false;
         }
         
@@ -149,7 +158,8 @@ async function handleCommand(client, target, context, commandText) {
             console.log('Command object:', {
                 name: command.config.name,
                 hasExecute: !!command.execute,
-                config: command.config
+                config: command.config,
+                source: getCommandSource(commandName)
             });
             const result = await command.execute(client, target, context, commandText);
             console.log(`Command ${commandName} execution completed with result:`, result);
@@ -164,6 +174,16 @@ async function handleCommand(client, target, context, commandText) {
     } finally {
         console.log('=== Command Manager: handleCommand End ===');
     }
+}
+
+// Get the source of a command (core or plugin name)
+function getCommandSource(commandName) {
+    for (const [pluginName, cmdNames] of pluginCommands.entries()) {
+        if (cmdNames.includes(commandName)) {
+            return `plugin:${pluginName}`;
+        }
+    }
+    return 'core';
 }
 
 // Enable a command
@@ -203,7 +223,8 @@ function listCommands() {
                 description: command.config.description || '',
                 usage: command.config.usage || `!${command.config.name}`,
                 enabled: command.config.enabled !== false,
-                modOnly: command.config.modOnly || false
+                modOnly: command.config.modOnly || false,
+                source: getCommandSource(name)
             });
         }
     });
@@ -274,7 +295,7 @@ function reloadAllCommands() {
 }
 
 // Add command function
-function addCommand(command) {
+function addCommand(command, pluginName = null) {
     try {
         // Validate command structure
         if (!command.name || !command.execute) {
@@ -289,7 +310,8 @@ function addCommand(command) {
                 description: command.config?.description || 'No description',
                 usage: command.config?.usage || `!${command.name}`,
                 enabled: command.config?.enabled !== false,
-                modOnly: command.config?.modOnly || false
+                modOnly: command.config?.modOnly || false,
+                prefix: command.config?.prefix || '!'
             },
             execute: command.execute
         };
@@ -297,7 +319,25 @@ function addCommand(command) {
         // Add the command using the lowercase name as key
         const commandName = command.name.toLowerCase();
         commands.set(commandName, commandObj);
-        console.log(`Added command: ${commandName}`);
+        
+        // If this is a plugin command, track it
+        if (pluginName) {
+            if (!pluginCommands.has(pluginName)) {
+                pluginCommands.set(pluginName, []);
+            }
+            pluginCommands.get(pluginName).push(commandName);
+            console.log(`Added plugin command: ${commandName} from plugin: ${pluginName}`);
+        } else {
+            console.log(`Added core command: ${commandName}`);
+        }
+        
+        // Register aliases if any
+        if (command.config?.aliases) {
+            for (const alias of command.config.aliases) {
+                aliases.set(alias, commandName);
+                console.log(`Registered alias: ${alias} for command: ${commandName}`);
+            }
+        }
         
         // Log current commands for debugging
         console.log('Current commands:', Array.from(commands.keys()));
@@ -306,6 +346,33 @@ function addCommand(command) {
         console.error(`Error adding command:`, error);
         return false;
     }
+}
+
+// Remove commands from a plugin
+function removePluginCommands(pluginName) {
+    if (!pluginCommands.has(pluginName)) {
+        return false;
+    }
+    
+    const cmdNames = pluginCommands.get(pluginName);
+    for (const cmdName of cmdNames) {
+        const command = commands.get(cmdName);
+        
+        // Remove aliases for this command
+        if (command && command.config && command.config.aliases) {
+            for (const alias of command.config.aliases) {
+                aliases.delete(alias);
+            }
+        }
+        
+        // Remove the command
+        commands.delete(cmdName);
+        console.log(`Removed plugin command: ${cmdName} from plugin: ${pluginName}`);
+    }
+    
+    // Clear the plugin's command list
+    pluginCommands.delete(pluginName);
+    return true;
 }
 
 // Export it
@@ -318,7 +385,9 @@ module.exports = {
     saveState,
     reloadAllCommands,
     addCommand,
+    removePluginCommands,
     // Export the commands map for debugging
     getCommands: () => Array.from(commands.entries()),
-    getAliases: () => Array.from(aliases.entries())
+    getAliases: () => Array.from(aliases.entries()),
+    getPluginCommands: () => Array.from(pluginCommands.entries())
 }; 

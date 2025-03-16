@@ -1,0 +1,49 @@
+{
+  "bot": {
+    "username": "Max2d2",
+    "channels": [
+      "maxthriller"
+    ],
+    "autoReconnect": true,
+    "reconnectInterval": 5000,
+    "maxReconnectAttempts": 10
+  },
+  "webcp": {
+    "port": 3000,
+    "wsPort": 8080
+  },
+  "plugins": {
+    "enabled": [
+      "libretranslate"
+    ],
+    "settings": {
+      "translator": {
+        "apiKey": "",
+        "defaultTargetLanguage": "en",
+        "translateIncoming": false,
+        "translateOutgoing": false,
+        "outgoingLanguages": [
+          "es",
+          "fr"
+        ],
+        "enabled": false
+      },
+      "libretranslate": {
+        "enabled": true,
+        "translateAll": false,
+        "defaultTargetLanguage": "en",
+        "apiUrl": "https://libretranslate.com/translate"
+      }
+    }
+  },
+  "commands": {
+    "prefix": "!",
+    "cooldown": 1000
+  },
+  "features": {
+    "enableLogging": true,
+    "enableChatHistory": true,
+    "maxChatHistory": 100,
+    "maxLogEntries": 1000
+  }
+}

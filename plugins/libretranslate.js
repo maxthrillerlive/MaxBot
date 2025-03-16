@@ -14,7 +14,7 @@ const plugin = {
     commandManager: null,
     commands: {},  // Store commands here
     config: {
-        apiUrl: 'http://192.168.1.85:5000',  // LibreTranslate server URL
+        apiUrl: 'https://libretranslate.com',  // LibreTranslate server URL
         targetLang: 'en',                    // Default target language
         translateAll: false,                  // Whether to translate all messages
         sourceLang: 'auto',                  // Auto-detect source language

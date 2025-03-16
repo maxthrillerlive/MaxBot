@@ -89,6 +89,13 @@ function initializeTwitchClient(config = {}) {
         throw new Error('At least one channel is required for Twitch client initialization');
     }
 
+    // Override the logger to use our custom format
+    const originalLogger = tmi.client.prototype.log;
+    tmi.client.prototype.log = function(message) {
+        // Don't log anything - we'll handle logging through our own functions
+        // This prevents duplicate log messages
+    };
+
     // Create a client with our options
     client = new tmi.client(opts);
     
@@ -108,7 +115,7 @@ function setupEventHandlers() {
 
     // Handle connecting event
     client.on('connecting', () => {
-        console.log('Connecting to Twitch...');
+        // Don't log here - it's already logged in the connect function
         if (eventHandlers.onConnecting) {
             eventHandlers.onConnecting();
         }
@@ -116,7 +123,7 @@ function setupEventHandlers() {
 
     // Handle connected event
     client.on('connected', (address, port) => {
-        console.log(`Connected to Twitch at ${address}:${port}`);
+        // Don't log here - it's already logged in the connect function
         // Update ping timestamp when we connect
         lastPingReceived = Date.now();
         lastPongReceived = Date.now();
@@ -144,7 +151,7 @@ function setupEventHandlers() {
     
     // Handle PING messages from the server
     client.on('ping', () => {
-        console.log('Received PING from Twitch IRC server, responding with PONG');
+        logInfo('Received PING from Twitch IRC server, responding with PONG');
         // Update ping timestamp
         lastPingReceived = Date.now();
         // The tmi.js library should automatically respond with a PONG
@@ -153,7 +160,7 @@ function setupEventHandlers() {
             if (client && client._connection && client._connection.ws && 
                 client._connection.ws.readyState === 1) {
                 client.raw('PONG :tmi.twitch.tv');
-                console.log('Explicitly sent PONG response to Twitch');
+                logInfo('Explicitly sent PONG response to Twitch');
             }
         } catch (error) {
             console.error('Error sending explicit PONG response:', error);
@@ -162,7 +169,7 @@ function setupEventHandlers() {
     
     // Handle PONG responses to our PINGs
     client.on('pong', () => {
-        console.log('Received PONG response from Twitch IRC server');
+        logInfo('Received PONG response from Twitch IRC server');
         // Update pong timestamp
         lastPongReceived = Date.now();
     });
@@ -171,7 +178,7 @@ function setupEventHandlers() {
     client.on('raw_message', (messageCloned, message) => {
         // Handle PING messages explicitly to ensure we respond
         if (message && message.command === 'PING') {
-            console.log('Received raw PING message from server, sending PONG');
+            logInfo('Received raw PING message from server, sending PONG');
             // Update ping timestamp
             lastPingReceived = Date.now();
             try {
@@ -180,7 +187,7 @@ function setupEventHandlers() {
                     // Send a PONG response with the same parameter as the PING
                     const pingParam = message.params && message.params.length > 0 ? message.params[0] : 'tmi.twitch.tv';
                     client.raw(`PONG :${pingParam}`);
-                    console.log(`Sent PONG :${pingParam} in response to PING`);
+                    logInfo(`Sent PONG :${pingParam} in response to PING`);
                 }
             } catch (error) {
                 console.error('Error sending PONG response to PING:', error);
@@ -188,7 +195,7 @@ function setupEventHandlers() {
         }
         // Log PONG messages
         else if (message && message.command === 'PONG') {
-            console.log('Received raw PONG message from server - connection is active');
+            logInfo('Received raw PONG message from server - connection is active');
             // Update pong timestamp
             lastPongReceived = Date.now();
         }
@@ -206,38 +213,130 @@ function registerEventHandlers(handlers = {}) {
     };
 }
 
+// Add a helper function for consistent logging
+function logInfo(message) {
+    // Use the logger module instead of direct console.log
+    // This prevents duplicate logging
+    logger.info(message);
+}
+
 /**
  * Connect to Twitch
  * @returns {Promise} - Resolves when connected, rejects on error
  */
 async function connect() {
-    if (!client) {
-        throw new Error('Twitch client must be initialized before connecting');
-    }
-
-    console.log('Connecting to Twitch...');
-    console.log('Bot username:', process.env.BOT_USERNAME);
-    console.log('Channel:', process.env.CHANNEL_NAME);
+    // Set the connection state
+    connectionState = 'connecting';
+    
+    // Log the connection attempt
+    logInfo('Connecting to Twitch...');
+    logInfo('Bot username: ' + process.env.BOT_USERNAME);
+    logInfo('Channel: ' + process.env.CHANNEL_NAME);
     
     try {
+        // Connect to Twitch
         await client.connect();
-        console.log('Bot connected successfully.');
+        
+        // Set the connection state
+        connectionState = 'connected';
         
         // Initialize ping timestamp when we connect
         lastPingReceived = Date.now();
         lastPongReceived = Date.now();
         
-        // We're now relying on Twitch's own PING messages to keep the connection alive
-        console.log('Relying on Twitch server PINGs to maintain connection');
+        // Log the connection details
+        const connectionDetails = getConnectionDetails();
+        logInfo(`Connected to Twitch at ${connectionDetails.server}:${connectionDetails.port}`);
+        logInfo('Relying on Twitch server PINGs to maintain connection');
         
+        // Return success
         return true;
-    } catch (err) {
-        console.error('Connection failed:', err);
-        if (err.message.includes('authentication failed')) {
+    } catch (error) {
+        // Set the connection state
+        connectionState = 'disconnected';
+        
+        // Log the error
+        console.error('Error connecting to Twitch:', error.message);
+        if (error.message.includes('authentication failed')) {
             console.error('Please check your CLIENT_TOKEN in .env file and make sure it starts with "oauth:"');
             console.error('You can get a new token by running: npm run auth');
         }
-        throw err;
+        
+        // Return failure
+        return false;
+    }
+}
+
+/**
+ * Connect to Twitch and wait for channel join confirmation
+ * @returns {Promise} - Resolves when connected and joined channel, rejects on error
+ */
+async function connectAndWaitForJoin() {
+    // Set the connection state
+    connectionState = 'connecting';
+    
+    // Log the connection attempt
+    logInfo('Connecting to Twitch...');
+    logInfo('Bot username: ' + process.env.BOT_USERNAME);
+    logInfo('Channel: ' + process.env.CHANNEL_NAME);
+    
+    try {
+        // Create a promise that will resolve when we join the channel
+        const joinPromise = new Promise((resolve, reject) => {
+            // Set a timeout in case we never get the join confirmation
+            const timeout = setTimeout(() => {
+                reject(new Error('Timed out waiting for channel join confirmation'));
+            }, 30000); // 30 second timeout
+            
+            // Listen for the join event
+            const joinHandler = (channel, username, self) => {
+                // Only resolve when the bot joins the specified channel
+                if (self && channel.toLowerCase() === '#' + process.env.CHANNEL_NAME.toLowerCase()) {
+                    clearTimeout(timeout);
+                    client.removeListener('join', joinHandler);
+                    resolve();
+                }
+            };
+            
+            // Add the join listener
+            client.on('join', joinHandler);
+        });
+        
+        // Connect to Twitch
+        await client.connect();
+        
+        // Set the connection state
+        connectionState = 'connected';
+        
+        // Initialize ping timestamp when we connect
+        lastPingReceived = Date.now();
+        lastPongReceived = Date.now();
+        
+        // Log the connection details
+        const connectionDetails = getConnectionDetails();
+        logInfo(`Connected to Twitch at ${connectionDetails.server}:${connectionDetails.port}`);
+        logInfo('Relying on Twitch server PINGs to maintain connection');
+        
+        // Wait for the join confirmation
+        logInfo('Waiting for channel join confirmation...');
+        await joinPromise;
+        logInfo('Successfully joined channel #' + process.env.CHANNEL_NAME);
+        
+        // Return success
+        return true;
+    } catch (error) {
+        // Set the connection state
+        connectionState = 'disconnected';
+        
+        // Log the error
+        console.error('Error connecting to Twitch:', error.message);
+        if (error.message.includes('authentication failed')) {
+            console.error('Please check your CLIENT_TOKEN in .env file and make sure it starts with "oauth:"');
+            console.error('You can get a new token by running: npm run auth');
+        }
+        
+        // Return failure
+        return false;
     }
 }
 
@@ -247,7 +346,7 @@ async function connect() {
  */
 async function checkTwitchConnection() {
     if (!client) {
-        console.log('Client not initialized, cannot check Twitch connection');
+        logInfo('Client not initialized, cannot check Twitch connection');
         return false;
     }
     
@@ -259,9 +358,9 @@ async function checkTwitchConnection() {
         
         // If we have recent PING/PONG activity, the connection is active
         if (recentActivity) {
-            console.log('Checking Twitch connection status: Connected (based on recent PING/PONG activity)',
-                'Time since last PING:', (Date.now() - lastPingReceived) / 1000, 'seconds',
-                'Time since last PONG:', (Date.now() - lastPongReceived) / 1000, 'seconds');
+            logInfo('Checking Twitch connection status: Connected (based on recent PING/PONG activity) ' +
+                'Time since last PING: ' + ((Date.now() - lastPingReceived) / 1000).toFixed(3) + ' seconds ' +
+                'Time since last PONG: ' + ((Date.now() - lastPongReceived) / 1000).toFixed(3) + ' seconds');
             return true;
         }
         
@@ -281,16 +380,16 @@ async function checkTwitchConnection() {
             // WebSocket.OPEN = 1
             isConnected = socketState === 1;
             
-            console.log('Checking Twitch connection status:', 
-                isConnected ? 'Connected' : 'Disconnected', 
-                'WebSocket state:', socketStateText);
+            logInfo('Checking Twitch connection status: ' + 
+                (isConnected ? 'Connected' : 'Disconnected') + 
+                ' WebSocket state: ' + socketStateText);
         } else {
-            console.log('WebSocket connection not available, no recent PING/PONG activity');
+            logInfo('WebSocket connection not available, no recent PING/PONG activity');
         }
         
         // If we're not connected and there's no recent activity, attempt to reconnect
         if (!isConnected && !recentActivity && !reconnectionInProgress) {
-            console.log('Connection appears to be down, initiating reconnection...');
+            logInfo('Connection appears to be down, initiating reconnection...');
             
             // Only attempt reconnection if we're not already in the process
             // and we haven't exceeded our consecutive reconnection limit
@@ -300,11 +399,11 @@ async function checkTwitchConnection() {
                     handleTwitchReconnection()
                         .then(success => {
                             if (success) {
-                                console.log('Reconnection successful');
+                                logInfo('Reconnection successful');
                                 consecutiveReconnectionAttempts = 0;
                                 reconnectionBackoffTime = 5000; // Reset backoff time
                             } else {
-                                console.log('Reconnection failed');
+                                logInfo('Reconnection failed');
                                 consecutiveReconnectionAttempts++;
                                 reconnectionBackoffTime *= 2; // Exponential backoff
                             }
@@ -319,9 +418,9 @@ async function checkTwitchConnection() {
                 }, reconnectionBackoffTime);
                 
                 reconnectionInProgress = true;
-                console.log(`Scheduled reconnection attempt in ${reconnectionBackoffTime/1000} seconds`);
+                logInfo(`Scheduled reconnection attempt in ${reconnectionBackoffTime/1000} seconds`);
             } else {
-                console.log(`Exceeded maximum consecutive reconnection attempts (${MAX_CONSECUTIVE_RECONNECTIONS}), backing off`);
+                logInfo(`Exceeded maximum consecutive reconnection attempts (${MAX_CONSECUTIVE_RECONNECTIONS}), backing off`);
                 // Reset after a longer delay
                 setTimeout(() => {
                     consecutiveReconnectionAttempts = 0;
@@ -355,12 +454,12 @@ function checkActiveTwitchConnections() {
  * @returns {Promise<boolean>} - Resolves to true if reconnected successfully, false otherwise
  */
 async function handleTwitchReconnection() {
-    console.log('Attempting to reconnect to Twitch...');
+    logInfo('Attempting to reconnect to Twitch...');
     
     try {
         // Check if client exists
         if (!client) {
-            console.log('Client not initialized, cannot reconnect');
+            logInfo('Client not initialized, cannot reconnect');
             return false;
         }
         
@@ -368,11 +467,11 @@ async function handleTwitchReconnection() {
         let socketState = 3; // Default to CLOSED
         if (client._connection && client._connection.ws) {
             socketState = client._connection.ws.readyState;
-            console.log('Current WebSocket state:', 
-                socketState === 0 ? 'CONNECTING' : 
+            logInfo('Current WebSocket state: ' + 
+                (socketState === 0 ? 'CONNECTING' : 
                 socketState === 1 ? 'OPEN' : 
                 socketState === 2 ? 'CLOSING' : 
-                socketState === 3 ? 'CLOSED' : 'UNKNOWN');
+                socketState === 3 ? 'CLOSED' : 'UNKNOWN'));
         }
         
         // Only disconnect if we're not already disconnected
@@ -381,13 +480,13 @@ async function handleTwitchReconnection() {
             try {
                 // Disconnect first if we're in a bad state
                 await client.disconnect();
-                console.log('Successfully disconnected, now reconnecting...');
+                logInfo('Successfully disconnected, now reconnecting...');
             } catch (disconnectError) {
                 // If disconnect fails, log it but continue with reconnection attempt
                 console.error('Error during disconnect:', disconnectError.message);
             }
         } else {
-            console.log('WebSocket already CLOSED, proceeding to reconnect');
+            logInfo('WebSocket already CLOSED, proceeding to reconnect');
         }
         
         // Wait a moment before reconnecting
@@ -395,7 +494,7 @@ async function handleTwitchReconnection() {
         
         // Reconnect
         await client.connect();
-        console.log('Successfully reconnected to Twitch');
+        logInfo('Successfully reconnected to Twitch');
         
         // Reset ping timestamps
         lastPingReceived = Date.now();
@@ -414,16 +513,16 @@ async function handleTwitchReconnection() {
  */
 function startPeriodicConnectionCheck(interval = 60000) { // Default to 1 minute
     // Re-enable connection checking
-    console.log(`Starting periodic connection check every ${interval/1000} seconds`);
+    logInfo(`Starting periodic connection check every ${interval/1000} seconds`);
     
     // Clear any existing interval
     stopPeriodicConnectionCheck();
     
     // Set up new interval
     connectionCheckInterval = setInterval(async () => {
-        console.log('Performing periodic connection check...');
+        logInfo('Performing periodic connection check...');
         const isConnected = await checkTwitchConnection();
-        console.log('Connection check result:', isConnected ? 'Connected' : 'Disconnected');
+        logInfo('Connection check result: ' + (isConnected ? 'Connected' : 'Disconnected'));
     }, interval);
     
     return connectionCheckInterval;
@@ -473,6 +572,8 @@ function getClient() {
 function getConnectionDetails() {
     if (!client) {
         return {
+            server: 'Not connected',
+            port: 'Not connected',
             readyState: 'No client',
             readyStateText: 'No client',
             channels: [],
@@ -497,7 +598,7 @@ function getConnectionDetails() {
     if (recentActivity) {
         socketState = 1; // WebSocket.OPEN
         socketStateText = 'OPEN (inferred from PING/PONG)';
-        console.log('Current WebSocket state:', socketStateText);
+        logInfo('Current WebSocket state: ' + socketStateText);
     }
     // Otherwise check the WebSocket state directly if available
     else if (client._connection && client._connection.ws) {
@@ -508,9 +609,9 @@ function getConnectionDetails() {
             socketState === 2 ? 'CLOSING' : 
             socketState === 3 ? 'CLOSED' : 'UNKNOWN';
         
-        console.log('Current WebSocket state:', socketStateText);
+        logInfo('Current WebSocket state: ' + socketStateText);
     } else {
-        console.log('Connection object not available, but checking PING/PONG activity');
+        logInfo('Connection object not available, but checking PING/PONG activity');
     }
     
     // Get channels safely
@@ -518,10 +619,12 @@ function getConnectionDetails() {
     try {
         channels = client.getChannels();
     } catch (e) {
-        console.log('Error getting channels:', e.message);
+        logInfo('Error getting channels: ' + e.message);
     }
     
     return {
+        server: 'irc-ws.chat.twitch.tv',
+        port: '443',
         readyState: socketState,
         readyStateText: socketStateText,
         channels: channels,
@@ -578,6 +681,7 @@ module.exports = {
     initializeTwitchClient,
     registerEventHandlers,
     connect,
+    connectAndWaitForJoin,
     disconnect,
     checkTwitchConnection,
     checkActiveTwitchConnections,

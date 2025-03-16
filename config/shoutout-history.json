@@ -1,8 +1,8 @@
 {
   "maxthriller": {
     "displayName": "maxthriller",
-    "lastShoutout": 1742072550867,
-    "game": "Software and Game Development",
+    "lastShoutout": 1742095338196,
+    "game": "S.T.A.L.K.E.R.: Clear Sky",
     "url": "https://twitch.tv/maxthriller"
   },
   "cergttv": {
@@ -16,5 +16,17 @@
     "lastShoutout": 1742073460022,
     "game": "Tom Clancy's Rainbow Six Siege",
     "url": "https://twitch.tv/jynxzi"
+  },
+  "zackrawrr": {
+    "displayName": "zackrawrr",
+    "lastShoutout": 1742095360736,
+    "game": "Just Chatting",
+    "url": "https://twitch.tv/zackrawrr"
+  },
+  "nexusrift_": {
+    "displayName": "NexusRift_",
+    "lastShoutout": 1742099480632,
+    "game": "Retro",
+    "url": "https://twitch.tv/nexusrift_"
   }
 }
