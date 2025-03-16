@@ -449,6 +449,80 @@ class ConfigManager {
     
     return output;
   }
+
+  /**
+   * Load a plugin's configuration
+   * @param {string} pluginName - The name of the plugin
+   * @returns {Object} The plugin's configuration
+   */
+  loadPluginConfig(pluginName) {
+    try {
+      const pluginConfigPath = path.join(this.configDir, `${pluginName}.json`);
+      
+      // Check if the plugin has its own config file
+      if (fs.existsSync(pluginConfigPath)) {
+        const pluginConfig = this.loadConfigFile(pluginConfigPath);
+        
+        if (pluginConfig) {
+          // Update the plugin's configuration in the main config
+          if (!this.config.plugins) {
+            this.config.plugins = { settings: {} };
+          }
+          if (!this.config.plugins.settings) {
+            this.config.plugins.settings = {};
+          }
+          
+          this.config.plugins.settings[pluginName] = pluginConfig;
+          this.logger.info(`Loaded configuration for plugin ${pluginName} from ${pluginConfigPath}`);
+          return pluginConfig;
+        }
+      }
+      
+      // If no specific config file exists, return the plugin config from the main config
+      if (this.config.plugins && 
+          this.config.plugins.settings && 
+          this.config.plugins.settings[pluginName]) {
+        return this.config.plugins.settings[pluginName];
+      }
+      
+      // Return an empty object if no configuration exists
+      return {};
+    } catch (error) {
+      this.logger.error(`Error loading configuration for plugin ${pluginName}: ${error.message}`);
+      return {};
+    }
+  }
+
+  /**
+   * Save a plugin's configuration
+   * @param {string} pluginName - The name of the plugin
+   * @param {Object} config - The configuration to save
+   * @returns {boolean} Whether the save was successful
+   */
+  savePluginConfig(pluginName, config) {
+    try {
+      const pluginConfigPath = path.join(this.configDir, `${pluginName}.json`);
+      
+      // Update the plugin's configuration in the main config
+      if (!this.config.plugins) {
+        this.config.plugins = { settings: {} };
+      }
+      if (!this.config.plugins.settings) {
+        this.config.plugins.settings = {};
+      }
+      
+      this.config.plugins.settings[pluginName] = config;
+      
+      // Save the plugin's configuration to its own file
+      this.saveConfigFile(pluginConfigPath, config);
+      
+      this.logger.info(`Saved configuration for plugin ${pluginName} to ${pluginConfigPath}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Error saving configuration for plugin ${pluginName}: ${error.message}`);
+      return false;
+    }
+  }
 }
 
 module.exports = ConfigManager; 

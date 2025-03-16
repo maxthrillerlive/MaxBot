@@ -83,7 +83,8 @@ class PluginManager {
         
         // Load plugin configuration if available
         if (this.configManager) {
-          const pluginConfig = this.configManager.get(`plugins.settings.${plugin.name}`, {});
+          // Load plugin-specific configuration
+          const pluginConfig = this.configManager.loadPluginConfig(plugin.name);
           
           // Ensure the plugin has a config object
           if (!plugin.config) {
@@ -105,6 +106,9 @@ class PluginManager {
           } else {
             plugin.config.enabled = false;
           }
+          
+          // Save the configuration to ensure it's up to date
+          this.configManager.savePluginConfig(plugin.name, plugin.config);
         }
         
         loadedPlugins.push(plugin.name);
@@ -326,11 +330,8 @@ class PluginManager {
       // Update the plugin's configuration
       plugin.config = { ...config, enabled };
       
-      // Save to the configuration manager
-      this.configManager.set(`plugins.settings.${pluginName}`, plugin.config);
-      
-      this.logger.info(`[PluginManager] Saved configuration for plugin: ${pluginName}`);
-      return true;
+      // Save to the configuration manager using the plugin-specific method
+      return this.configManager.savePluginConfig(pluginName, plugin.config);
     } catch (error) {
       this.logger.error(`[PluginManager] Error saving configuration for plugin ${pluginName}: ${error.message}`);
       return false;
@@ -368,8 +369,12 @@ class PluginManager {
           continue;
         }
         
-        // Look for the command in this plugin
-        const command = plugin.commands.find(cmd => cmd.name === commandName);
+        // Look for the command in this plugin by name or alias
+        const command = plugin.commands.find(cmd => 
+          cmd.name === commandName || 
+          (cmd.config && cmd.config.aliases && Array.isArray(cmd.config.aliases) && cmd.config.aliases.includes(commandName))
+        );
+        
         if (!command) {
           continue;
         }
@@ -400,13 +405,13 @@ class PluginManager {
         }
         
         // Execute the command
-        this.logger.info(`[PluginManager] Executing command: ${commandName} from plugin: ${plugin.name}`);
+        this.logger.info(`[PluginManager] Executing command: ${command.name} from plugin: ${plugin.name}`);
         try {
           const result = await command.execute(client, target, context, commandText);
-          this.logger.info(`[PluginManager] Command ${commandName} execution completed with result:`, result);
+          this.logger.info(`[PluginManager] Command ${command.name} execution completed with result:`, result);
           return result;
         } catch (error) {
-          this.logger.error(`[PluginManager] Error executing command ${commandName}:`, error);
+          this.logger.error(`[PluginManager] Error executing command ${command.name}:`, error);
           return false;
         }
       }
@@ -621,15 +626,27 @@ class PluginManager {
         }
       }
       
+      // Remove the plugin from our collection
+      this.plugins.delete(pluginName);
+      
+      // If the plugin file no longer exists, unregister it and return success
       if (!pluginFile) {
-        this.logger.error(`[PluginManager] Cannot reload plugin ${pluginName}: File not found`);
-        return false;
+        this.logger.info(`[PluginManager] Plugin ${pluginName} no longer exists, unregistering it`);
+        
+        // Update the enabled plugins list in the configuration if needed
+        if (this.configManager) {
+          const enabledPlugins = this.configManager.get('plugins.enabled', []);
+          const index = enabledPlugins.indexOf(pluginName);
+          if (index !== -1) {
+            enabledPlugins.splice(index, 1);
+            this.configManager.set('plugins.enabled', enabledPlugins);
+          }
+        }
+        
+        return true;
       }
       
       const pluginPath = path.join(this.pluginsDir, pluginFile);
-      
-      // Remove the plugin from our collection
-      this.plugins.delete(pluginName);
       
       // Clear require cache to ensure we get fresh plugin code
       delete require.cache[require.resolve(pluginPath)];
@@ -684,12 +701,86 @@ class PluginManager {
     
     // Reload each plugin
     for (const pluginName of pluginNames) {
-      const success = this.reloadPlugin(pluginName);
-      if (success) {
-        results.success.push(pluginName);
-      } else {
+      try {
+        const success = this.reloadPlugin(pluginName);
+        if (success) {
+          results.success.push(pluginName);
+        } else {
+          results.failed.push(pluginName);
+        }
+      } catch (error) {
+        // If an error occurs during reload, log it and continue with other plugins
+        this.logger.error(`[PluginManager] Unexpected error reloading plugin ${pluginName}: ${error.message}`);
         results.failed.push(pluginName);
       }
+    }
+    
+    // Load any new plugins that weren't previously loaded
+    try {
+      // Get all JavaScript files in the plugins directory
+      const pluginFiles = fs.readdirSync(this.pluginsDir)
+        .filter(file => file.endsWith('.js'));
+      
+      // Check for new plugins
+      for (const file of pluginFiles) {
+        try {
+          const pluginPath = path.join(this.pluginsDir, file);
+          
+          // Clear require cache to ensure we get fresh plugin code
+          delete require.cache[require.resolve(pluginPath)];
+          
+          // Load the plugin
+          const plugin = require(pluginPath);
+          
+          // Check if the plugin has the required properties and methods
+          if (!plugin.name || typeof plugin.init !== 'function') {
+            this.logger.warn(`[PluginManager] Invalid plugin format: ${file}`);
+            continue;
+          }
+          
+          // Check if this is a new plugin
+          if (!this.plugins.has(plugin.name)) {
+            // Add the plugin to our collection
+            this.plugins.set(plugin.name, plugin);
+            
+            // Load plugin configuration if available
+            if (this.configManager) {
+              const pluginConfig = this.configManager.get(`plugins.settings.${plugin.name}`, {});
+              
+              // Ensure the plugin has a config object
+              if (!plugin.config) {
+                plugin.config = {};
+              }
+              
+              // Merge the saved config with the plugin's default config
+              plugin.config = { ...plugin.config, ...pluginConfig };
+              
+              // Ensure the enabled property exists
+              if (plugin.config.enabled === undefined) {
+                plugin.config.enabled = false;
+              }
+
+              // Check if the plugin should be enabled by default
+              const enabledPlugins = this.configManager.get('plugins.enabled', []);
+              if (enabledPlugins.includes(plugin.name) || plugin.config.enabled) {
+                plugin.config.enabled = true;
+                
+                // Initialize the plugin if it should be enabled
+                if (this.bot) {
+                  plugin.init(this.bot, this.logger);
+                }
+              }
+            }
+            
+            results.success.push(plugin.name);
+            this.logger.info(`[PluginManager] Loaded new plugin: ${plugin.name}`);
+          }
+        } catch (error) {
+          this.logger.error(`[PluginManager] Error loading plugin ${file}: ${error.message}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`[PluginManager] Error checking for new plugins: ${error.message}`);
     }
     
     this.logger.info(`[PluginManager] Reloaded ${results.success.length} plugins successfully, ${results.failed.length} failed`);

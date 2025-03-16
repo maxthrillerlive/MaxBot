@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "maxDice": 10,
+  "maxSides": 100
+}

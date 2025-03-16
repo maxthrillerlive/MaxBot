@@ -256,6 +256,12 @@ client.on('message', async (channel, tags, message, self) => {
     
     logInfo('DIRECT HANDLER: Received message: ' + message);
     
+    // Skip the reload command since it's handled by a dedicated handler
+    if (message.trim() === '!reload' || message.trim().startsWith('!reload ')) {
+        logInfo('DIRECT HANDLER: Skipping reload command (handled by dedicated handler)');
+        return;
+    }
+    
     // Process commands (support both ! and ? prefixes)
     if (message.startsWith('!') || message.startsWith('?')) {
         logInfo('DIRECT HANDLER: Processing command: ' + message);
@@ -287,36 +293,58 @@ client.on('message', (channel, tags, message, self) => {
     // Ignore messages from the bot itself
     if (self) return;
     
-    // Check if the message is a command
-    if (message.startsWith('!reload')) {
+    // Check if the message is a reload command - strip all invisible characters first
+    const cleanMessage = message.replace(/\p{C}/gu, '').trim();
+    
+    if (cleanMessage === '!reload') {
         // Check if the user is the broadcaster or a moderator
         if (tags.badges && (tags.badges.broadcaster === '1' || tags.badges.moderator === '1')) {
-            const args = message.split(' ');
+            // Reload all plugins
+            const results = pluginManager.reloadAllPlugins();
             
-            if (args.length > 1) {
-                // Reload a specific plugin
-                const pluginName = args[1];
-                const result = pluginManager.reloadPlugin(pluginName);
-                
-                if (result) {
-                    client.say(channel, `Successfully reloaded plugin: ${pluginName}`);
-                } else {
-                    client.say(channel, `Failed to reload plugin: ${pluginName}`);
-                }
+            if (results.success.length > 0) {
+                client.say(channel, `Reloaded ${results.success.length} plugins successfully, ${results.failed.length} failed`);
             } else {
-                // Reload all plugins
-                const results = pluginManager.reloadAllPlugins();
+                client.say(channel, `Failed to reload any plugins`);
+            }
+        } else {
+            // User doesn't have permission
+            client.say(channel, `@${tags.username} You don't have permission to use this command`);
+        }
+        
+        // Return here to prevent the message from being processed by the regular command handler
+        return;
+    }
+    
+    // Check if it's a reload command with a plugin name
+    if (cleanMessage.startsWith('!reload ')) {
+        // Check if the user is the broadcaster or a moderator
+        if (tags.badges && (tags.badges.broadcaster === '1' || tags.badges.moderator === '1')) {
+            // Get the plugin name - only keep alphanumeric characters, dashes, and underscores
+            const parts = cleanMessage.split(' ');
+            if (parts.length > 1) {
+                const pluginName = parts[1].replace(/[^\w\-]/g, '').trim();
                 
-                if (results.success.length > 0) {
-                    client.say(channel, `Reloaded ${results.success.length} plugins successfully, ${results.failed.length} failed`);
+                if (pluginName && pluginName.length > 0) {
+                    // Reload a specific plugin
+                    const result = pluginManager.reloadPlugin(pluginName);
+                    
+                    if (result) {
+                        client.say(channel, `Successfully reloaded plugin: ${pluginName}`);
+                    } else {
+                        client.say(channel, `Failed to reload plugin: ${pluginName}`);
+                    }
                 } else {
-                    client.say(channel, `Failed to reload any plugins`);
+                    client.say(channel, `Invalid plugin name. Usage: !reload [pluginName]`);
                 }
             }
         } else {
             // User doesn't have permission
             client.say(channel, `@${tags.username} You don't have permission to use this command`);
         }
+        
+        // Return here to prevent the message from being processed by the regular command handler
+        return;
     }
 });
 
