@@ -59,7 +59,7 @@ npm run dev
 ├── twitch-auth.js     # Twitch authentication module
 ├── auth-server.js     # Authentication server
 ├── pluginManager.js   # Plugin management system
-├── config-manager.js  # Configuration management
+├── configManager.js   # Configuration management
 ├── logger.js          # Logging utility
 ├── plugins/           # Bot plugins
 │   ├── help.js        # Help command plugin

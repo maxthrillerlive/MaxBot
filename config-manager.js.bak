@@ -523,6 +523,40 @@ class ConfigManager {
       return false;
     }
   }
+
+  /**
+   * Load a plugin's configuration without saving it back
+   * @param {string} pluginName - The name of the plugin
+   * @returns {Object} The plugin's configuration
+   */
+  loadPluginConfigWithoutSaving(pluginName) {
+    try {
+      const pluginConfigPath = path.join(this.configDir, `${pluginName}.json`);
+      
+      // Check if the plugin has its own config file
+      if (fs.existsSync(pluginConfigPath)) {
+        const pluginConfig = this.loadConfigFile(pluginConfigPath);
+        
+        if (pluginConfig) {
+          this.logger.info(`Loaded configuration for plugin ${pluginName} from ${pluginConfigPath} (without saving)`);
+          return pluginConfig;
+        }
+      }
+      
+      // If no specific config file exists, return the plugin config from the main config
+      if (this.config.plugins && 
+          this.config.plugins.settings && 
+          this.config.plugins.settings[pluginName]) {
+        return this.config.plugins.settings[pluginName];
+      }
+      
+      // Return an empty object if no configuration exists
+      return {};
+    } catch (error) {
+      this.logger.error(`Error loading configuration for plugin ${pluginName}: ${error.message}`);
+      return {};
+    }
+  }
 }
 
 module.exports = ConfigManager; 

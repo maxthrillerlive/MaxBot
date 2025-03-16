@@ -81,8 +81,8 @@ class PluginManager {
         
         // Load plugin configuration if available
         if (this.configManager) {
-          // Load plugin-specific configuration
-          const pluginConfig = this.configManager.loadPluginConfig(plugin.name);
+          // Load plugin-specific configuration without saving
+          const pluginConfig = this.configManager.loadPluginConfigWithoutSaving(plugin.name);
           
           // Ensure the plugin has a config object
           if (!plugin.config) {
@@ -104,9 +104,6 @@ class PluginManager {
           } else {
             plugin.config.enabled = false;
           }
-          
-          // Save the configuration to ensure it's up to date
-          this.configManager.savePluginConfig(plugin.name, plugin.config);
         }
         
         loadedPlugins.push(plugin.name);

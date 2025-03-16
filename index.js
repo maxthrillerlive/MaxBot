@@ -6,7 +6,7 @@ const logger = require('./logger');
 const { spawn } = require('child_process');
 const twitchAuth = require('./twitch-auth'); // Import the new Twitch auth module
 const PluginManager = require('./pluginManager'); // Import the plugin manager
-const ConfigManager = require('./config-manager'); // Import the configuration manager
+const ConfigManager = require('./configManager'); // Import the configuration manager
 
 // Add this line to define startTime
 const startTime = Date.now();
