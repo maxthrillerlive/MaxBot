@@ -10,7 +10,6 @@ const plugin = {
     enabled: true,
     client: null,
     logger: null,
-    commandManager: null,
     
     // Plugin configuration
     config: {
@@ -31,7 +30,6 @@ const plugin = {
         this.bot = bot;
         this.client = bot.client;
         this.logger = logger;
-        this.commandManager = bot.commandManager;
         
         this.logInfo('[Test] Plugin initializing...');
         

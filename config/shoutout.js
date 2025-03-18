@@ -16,6 +16,16 @@ const config = {
     enabled: true
 };
 
+// Plugin command configuration
+const pluginCommand = {
+    name: 'plugin',
+    description: 'Control plugin settings',
+    usage: '!plugin <plugin> <action> [options]',
+    cooldown: 3,
+    modOnly: true,
+    enabled: true
+};
+
 // Path to the shoutout history file
 const shoutoutHistoryPath = path.join(__dirname, '..', 'config', 'shoutout-history.json');
 const shoutoutConfigPath = path.join(__dirname, '..', 'config', 'shoutout.json');
@@ -25,7 +35,8 @@ let shoutoutConfig = {
     autoShoutout: {
         enabled: true,
         cooldownHours: 24,
-        welcomeMessage: "Welcome back to the channel!"
+        welcomeMessage: "Welcome back to the channel!",
+        message: "🎮 Look who it is, @{username}! Check them out over over at https://twitch.tv/{username}!!! 👍"
     },
     messages: {
         streamer: "🎮 Check out @{displayName} over at {url} - {gameInfo} 👍",
@@ -326,71 +337,70 @@ async function execute(client, channel, context, args) {
  * @returns {Promise<boolean>} - Whether the command was executed successfully
  */
 async function handleConfigCommand(client, channel, context, args) {
-    // Check if the user is a mod or broadcaster
-    const isMod = context.mod || context.badges?.broadcaster === '1';
-    if (!isMod) {
-        await client.say(channel, `@${context.username} You must be a moderator to configure the shoutout command.`);
-        return false;
+    // Only allow moderators to use this command
+    if (!context.mod && context.username.toLowerCase() !== channel.replace('#', '').toLowerCase()) {
+        return;
     }
-    
-    // If no arguments, show current configuration
-    if (args.length === 0) {
-        const autoShoutoutStatus = shoutoutConfig.autoShoutout.enabled ? 'enabled' : 'disabled';
-        const cooldownHours = shoutoutConfig.autoShoutout.cooldownHours;
-        await client.say(channel, `@${context.username} Shoutout configuration: Auto-shoutouts are ${autoShoutoutStatus} with a ${cooldownHours} hour cooldown.`);
-        return true;
+
+    if (args.length < 2) {
+        await client.say(channel, `@${context.username} Usage: !soconfig [message|streamer|nonstreamer|auto] [value]`);
+        return;
     }
+
+    const subCommand = args[1].toLowerCase();
     
-    // Handle specific configuration commands
-    const setting = args[0].toLowerCase();
-    
-    if (setting === 'auto' || setting === 'autoshoutout') {
-        if (args.length < 2) {
+    // Handle auto-shoutout toggle
+    if (subCommand === 'auto' || subCommand === 'autoshoutout') {
+        if (args.length < 3) {
             const status = shoutoutConfig.autoShoutout.enabled ? 'enabled' : 'disabled';
-            await client.say(channel, `@${context.username} Auto-shoutouts are currently ${status}. Use !so config auto enable/disable to change.`);
-            return true;
+            await client.say(channel, `@${context.username} Auto-shoutout is currently ${status}.`);
+            return;
         }
         
-        const value = args[1].toLowerCase();
-        if (value === 'enable' || value === 'on' || value === 'true') {
+        const toggle = args[2].toLowerCase();
+        if (toggle === 'on' || toggle === 'enable' || toggle === 'true') {
             shoutoutConfig.autoShoutout.enabled = true;
-            await client.say(channel, `@${context.username} Auto-shoutouts have been enabled.`);
-        } else if (value === 'disable' || value === 'off' || value === 'false') {
+            await client.say(channel, `@${context.username} Auto-shoutout has been enabled.`);
+        } else if (toggle === 'off' || toggle === 'disable' || toggle === 'false') {
             shoutoutConfig.autoShoutout.enabled = false;
-            await client.say(channel, `@${context.username} Auto-shoutouts have been disabled.`);
+            await client.say(channel, `@${context.username} Auto-shoutout has been disabled.`);
         } else {
-            await client.say(channel, `@${context.username} Invalid value. Use enable or disable.`);
-            return false;
+            await client.say(channel, `@${context.username} Invalid option. Use 'on' or 'off'.`);
+            return;
         }
         
         // Save the updated configuration
         fs.writeFileSync(shoutoutConfigPath, JSON.stringify(shoutoutConfig, null, 2));
-        return true;
+        return;
     }
-    
-    if (setting === 'cooldown') {
-        if (args.length < 2) {
-            await client.say(channel, `@${context.username} Current cooldown is ${shoutoutConfig.autoShoutout.cooldownHours} hours. Use !so config cooldown <hours> to change.`);
-            return true;
+
+    // Handle message configuration
+    if (subCommand === 'message' || subCommand === 'streamer' || subCommand === 'nonstreamer') {
+        if (args.length < 3) {
+            await client.say(channel, `@${context.username} Please provide a message template.`);
+            return;
         }
-        
-        const hours = parseInt(args[1]);
-        if (isNaN(hours) || hours < 1) {
-            await client.say(channel, `@${context.username} Invalid cooldown. Please specify a number of hours greater than 0.`);
-            return false;
+
+        // Join the remaining arguments to form the message
+        const messageTemplate = args.slice(2).join(' ');
+
+        // Update the appropriate message template
+        if (subCommand === 'message') {
+            shoutoutConfig.messages.streamer = messageTemplate;
+            await client.say(channel, `@${context.username} Updated streamer message template.`);
+        } else if (subCommand === 'streamer') {
+            shoutoutConfig.messages.streamer = messageTemplate;
+            await client.say(channel, `@${context.username} Updated streamer message template.`);
+        } else if (subCommand === 'nonstreamer') {
+            shoutoutConfig.messages.nonStreamer = messageTemplate;
+            await client.say(channel, `@${context.username} Updated non-streamer message template.`);
         }
-        
-        shoutoutConfig.autoShoutout.cooldownHours = hours;
-        await client.say(channel, `@${context.username} Auto-shoutout cooldown set to ${hours} hours.`);
-        
+
         // Save the updated configuration
         fs.writeFileSync(shoutoutConfigPath, JSON.stringify(shoutoutConfig, null, 2));
-        return true;
+    } else {
+        await client.say(channel, `@${context.username} Unknown configuration option. Available options: message, streamer, nonstreamer, auto`);
     }
-    
-    // If we get here, the setting wasn't recognized
-    await client.say(channel, `@${context.username} Unknown setting. Available settings: auto, cooldown`);
-    return false;
 }
 
 /**
@@ -449,6 +459,66 @@ async function processMessage(client, channel, tags, message, self) {
 // Export the command
 module.exports = {
     config,
+    pluginCommand,
     execute,
-    processMessage
-}; 
+    handleConfigCommand,
+    processMessage,
+    handlePluginCommand
+};
+
+/**
+ * Handle plugin commands for shoutout
+ * @param {Object} client - The Twitch client
+ * @param {string} channel - The channel name
+ * @param {Object} context - The message context
+ * @param {Array} args - The command arguments
+ * @returns {boolean} - Whether the command was handled
+ */
+async function handlePluginCommand(client, channel, context, args) {
+    // Only allow moderators to use this command
+    if (!context.mod && context.username.toLowerCase() !== channel.replace('#', '').toLowerCase()) {
+        return false;
+    }
+
+    // Check if this is a shoutout plugin command
+    if (args.length < 2 || args[1].toLowerCase() !== 'shoutout') {
+        return false;
+    }
+
+    // Handle shoutout plugin commands
+    if (args.length < 3) {
+        await client.say(channel, `@${context.username} Usage: !plugin shoutout [autoshoutout] [on|off]`);
+        return true;
+    }
+
+    const subCommand = args[2].toLowerCase();
+    
+    // Handle auto-shoutout toggle
+    if (subCommand === 'auto' || subCommand === 'autoshoutout') {
+        if (args.length < 4) {
+            const status = shoutoutConfig.autoShoutout.enabled ? 'enabled' : 'disabled';
+            await client.say(channel, `@${context.username} Auto-shoutout is currently ${status}.`);
+            return true;
+        }
+        
+        const toggle = args[3].toLowerCase();
+        if (toggle === 'on' || toggle === 'enable' || toggle === 'true') {
+            shoutoutConfig.autoShoutout.enabled = true;
+            await client.say(channel, `@${context.username} Auto-shoutout has been enabled.`);
+        } else if (toggle === 'off' || toggle === 'disable' || toggle === 'false') {
+            shoutoutConfig.autoShoutout.enabled = false;
+            await client.say(channel, `@${context.username} Auto-shoutout has been disabled.`);
+        } else {
+            await client.say(channel, `@${context.username} Invalid option. Use 'on' or 'off'.`);
+            return true;
+        }
+        
+        // Save the updated configuration
+        fs.writeFileSync(shoutoutConfigPath, JSON.stringify(shoutoutConfig, null, 2));
+        return true;
+    }
+
+    // If we get here, the subcommand wasn't recognized
+    await client.say(channel, `@${context.username} Unknown shoutout plugin command. Available commands: autoshoutout`);
+    return true;
+} 

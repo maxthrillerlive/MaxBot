@@ -27,10 +27,10 @@ class PluginManager {
   }
   
   /**
-   * Set the bot instance for plugins to use
+   * Initialize the plugin manager with a bot instance
    * @param {Object} bot - The bot instance
    */
-  setBot(bot) {
+  init(bot) {
     this.bot = bot;
   }
   
@@ -70,6 +70,12 @@ class PluginManager {
         // Load the plugin
         const plugin = require(pluginPath);
         
+        // Skip template plugins
+        if (file === 'template.js' || file === 'template-class.js') {
+          this.logger.info(`[PluginManager] Skipping template plugin: ${file}`);
+          continue;
+        }
+        
         // Check if the plugin has the required properties and methods
         if (!plugin.name || typeof plugin.init !== 'function') {
           this.logger.warn(`[PluginManager] Invalid plugin format: ${file}`);
@@ -78,6 +84,10 @@ class PluginManager {
         
         // Add the plugin to our collection
         this.plugins.set(plugin.name, plugin);
+        
+        // Add author information to the log if available
+        const authorInfo = plugin.author ? ` by ${plugin.author}` : '';
+        this.logger.info(`[PluginManager] Loaded plugin: ${plugin.name} v${plugin.version || '1.0.0'}${authorInfo}`);
         
         // Load plugin configuration if available
         if (this.configManager) {

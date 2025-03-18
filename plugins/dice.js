@@ -10,13 +10,10 @@ const plugin = {
     enabled: true,
     client: null,
     logger: null,
-    commandManager: null,
     
     // Plugin configuration
     config: {
-        enabled: true,
-        maxDice: 10,
-        maxSides: 100
+        enabled: true
     },
     
     // Commands provided by this plugin
@@ -27,80 +24,97 @@ const plugin = {
         this.bot = bot;
         this.client = bot.client;
         this.logger = logger;
-        this.commandManager = bot.commandManager;
         
         this.logger.info('[Dice] Plugin initializing...');
         
         // Set up commands
+        this.setupCommands();
+        
+        this.logger.info('[Dice] Plugin initialized successfully');
+        return true;
+    },
+    
+    // Set up commands
+    setupCommands: function() {
         this.commands = [
             {
-                name: 'dice',
+                name: 'roll',
                 config: {
-                    description: 'Roll dice and get random numbers',
-                    usage: '!dice [number]d[sides] (e.g. !dice 2d6)',
-                    aliases: ['roll', 'r'],
+                    description: 'Roll dice (e.g. 2d6+3)',
+                    usage: '!roll [dice expression]',
+                    aliases: ['dice'],
                     cooldown: 5,
                     modOnly: false,
                     enabled: true
                 },
                 execute: async (client, channel, context, commandText) => {
                     try {
-                        // Parse the command
                         const parts = commandText.trim().split(' ');
-                        let diceNotation = parts.length > 1 ? parts[1].toLowerCase() : '1d6';
+                        let diceExpression = '1d6';
                         
-                        // Default to 1d6 if no dice notation provided
-                        if (!diceNotation.includes('d')) {
-                            diceNotation = '1d6';
+                        if (parts.length > 1) {
+                            diceExpression = parts[1];
                         }
                         
-                        // Parse the dice notation (e.g. 2d6)
-                        const [numDice, numSides] = diceNotation.split('d').map(n => parseInt(n, 10));
-                        
-                        // Validate input
-                        if (isNaN(numDice) || isNaN(numSides) || numDice < 1 || numSides < 1) {
-                            await client.say(channel, `@${context.username} Invalid dice notation. Use format: !dice [number]d[sides] (e.g. !dice 2d6)`);
-                            return false;
-                        }
-                        
-                        // Enforce limits
-                        if (numDice > this.config.maxDice) {
-                            await client.say(channel, `@${context.username} Too many dice! Maximum is ${this.config.maxDice}.`);
-                            return false;
-                        }
-                        
-                        if (numSides > this.config.maxSides) {
-                            await client.say(channel, `@${context.username} Too many sides! Maximum is ${this.config.maxSides}.`);
-                            return false;
-                        }
-                        
-                        // Roll the dice
-                        const rolls = [];
-                        let total = 0;
-                        
-                        for (let i = 0; i < numDice; i++) {
-                            const roll = Math.floor(Math.random() * numSides) + 1;
-                            rolls.push(roll);
-                            total += roll;
-                        }
-                        
-                        // Format the result
-                        const result = numDice > 1 
-                            ? `@${context.username} rolled ${diceNotation}: ${rolls.join(', ')} (Total: ${total})`
-                            : `@${context.username} rolled ${diceNotation}: ${total}`;
-                        
-                        await client.say(channel, result);
+                        const result = this.rollDice(diceExpression);
+                        await client.say(channel, `@${context.username} Rolled ${diceExpression}: ${result.total} ${result.details ? `[${result.details}]` : ''}`);
                         return true;
                     } catch (error) {
-                        this.logger.error(`[Dice] Error in dice command:`, error);
+                        this.logger.error(`[Dice] Error rolling dice:`, error);
+                        await client.say(channel, `@${context.username} Invalid dice expression. Try something like 2d6+3`);
                         return false;
                     }
                 }
             }
         ];
-        
-        this.logger.info('[Dice] Plugin initialized successfully');
-        return true;
+    },
+    
+    // Roll dice
+    rollDice: function(expression) {
+        try {
+            // Parse the dice expression (e.g., "2d6+3")
+            const match = expression.match(/^(\d+)?d(\d+)(?:([+-])(\d+))?$/i);
+            
+            if (!match) {
+                throw new Error('Invalid dice expression');
+            }
+            
+            const numDice = match[1] ? parseInt(match[1], 10) : 1;
+            const numSides = parseInt(match[2], 10);
+            const modifier = match[3] ? match[3] : '';
+            const modValue = match[4] ? parseInt(match[4], 10) : 0;
+            
+            // Validate dice parameters
+            if (numDice < 1 || numDice > 100 || numSides < 1 || numSides > 1000) {
+                throw new Error('Dice parameters out of range');
+            }
+            
+            // Roll the dice
+            let total = 0;
+            const rolls = [];
+            
+            for (let i = 0; i < numDice; i++) {
+                const roll = Math.floor(Math.random() * numSides) + 1;
+                rolls.push(roll);
+                total += roll;
+            }
+            
+            // Apply modifier
+            if (modifier === '+') {
+                total += modValue;
+            } else if (modifier === '-') {
+                total -= modValue;
+            }
+            
+            // Return the result
+            return {
+                total,
+                details: numDice > 1 ? rolls.join(', ') : ''
+            };
+        } catch (error) {
+            this.logger.error(`[Dice] Error parsing dice expression:`, error);
+            throw error;
+        }
     },
     
     // Enable plugin

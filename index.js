@@ -249,24 +249,28 @@ if (!process.env.CHANNEL_NAME) {
 // Initialize the Twitch client using our new module
 const client = twitchAuth.initializeTwitchClient();
 
-// Add a direct message handler to the client
+// Direct message handler for Twitch chat
 client.on('message', async (channel, tags, message, self) => {
     // Skip messages from the bot itself
     if (self) return;
     
-    logInfo('DIRECT HANDLER: Received message: ' + message);
-    
-    // Skip the reload command since it's handled by a dedicated handler
-    if (message.trim() === '!reload' || message.trim().startsWith('!reload ')) {
-        logInfo('DIRECT HANDLER: Skipping reload command (handled by dedicated handler)');
-        return;
-    }
-    
     // Process commands (support both ! and ? prefixes)
     if (message.startsWith('!') || message.startsWith('?')) {
+        // Skip if the message is already in cache (duplicate)
+        if (!addToMessageCache(tags, message)) {
+            return;
+        }
+        
         logInfo('DIRECT HANDLER: Processing command: ' + message);
         
-        // Use the plugin manager to handle the command
+        // Check if it's a help command first, since that's built-in
+        if (message.toLowerCase().startsWith('!help') || message.toLowerCase().startsWith('?help')) {
+            const params = message.trim().split(' ').slice(1);
+            await handleHelpCommand(client, channel, tags, params);
+            return;
+        }
+        
+        // Use the plugin manager to handle other commands
         const result = await pluginManager.handleCommand(client, channel, tags, message);
         
         if (result) {
@@ -348,14 +352,19 @@ client.on('message', (channel, tags, message, self) => {
     }
 });
 
-// Create bot object to pass to plugins
-const bot = {
-    client: client,
+// Create the bot object to share with plugins
+const botObject = {
+    client,
+    pluginManager,
+    logger,
     messageHandlers: [],
     onMessage: function(handler) {
         this.messageHandlers.push(handler);
     }
 };
+
+// Initialize plugin manager
+pluginManager.init(botObject);
 
 // After creating the client but before using it
 const originalSay = client.say;
@@ -395,17 +404,6 @@ twitchAuth.connectAndWaitForJoin()
     .then(() => {
         // Only proceed after we've successfully joined the channel
         logInfo('Bot connected and joined channel successfully.');
-        
-        // Initialize the bot object with all required components
-        const botObject = {
-            client,
-            pluginManager,
-            logger,
-            messageHandlers: []
-        };
-        
-        // Set the bot instance for the plugin manager
-        pluginManager.setBot(botObject);
         
         // Now load and initialize plugins
         pluginManager.loadPlugins();
@@ -459,35 +457,54 @@ function addToMessageCache(context, commandText) {
     return true;
 }
 
-// Update onMessageHandler to call plugin handlers
+// Called every time a message is received
 async function onMessageHandler(target, context, msg, self) {
-    // Log the message
+    // Skip messages from the bot itself
+    if (self) return;
+    
+    // Process commands (support both ! and ? prefixes)
     if (msg.startsWith('!') || msg.startsWith('?')) {
-        logger.info(`[${target}] <${context.username}>: ${msg}`, {
-            channel: target,
-            chat: true,
-            username: context.username
-        });
+        // Skip if the message is already in cache (duplicate)
+        if (!addToMessageCache(context, msg)) {
+            return;
+        }
         
-        // Handle commands through plugin manager
-        try {
-            await pluginManager.handleCommand(client, target, context, msg);
-        } catch (error) {
-            logger.error(`Error handling command: ${error.message}`);
+        logInfo('DIRECT HANDLER: Processing command: ' + msg);
+        
+        // Check if it's a help command first, since that's built-in
+        if (msg.toLowerCase().startsWith('!help') || msg.toLowerCase().startsWith('?help')) {
+            const params = msg.trim().split(' ').slice(1);
+            await handleHelpCommand(client, target, context, params);
+            return;
         }
-    }
-    
-    // Call all registered plugin message handlers
-    for (const handler of bot.messageHandlers) {
-        try {
-            await handler(target, context, msg, self);
-        } catch (error) {
-            logger.error(`Error in plugin message handler: ${error.message}`);
+        
+        // Check if it's a plugin command, since that's built-in too
+        if (msg.toLowerCase().startsWith('!plugin') || msg.toLowerCase().startsWith('?plugin')) {
+            const params = msg.trim().split(' ').slice(1);
+            await handlePluginCommand(client, target, context, params);
+            return;
         }
+        
+        // Use the plugin manager to handle other commands
+        const result = await pluginManager.handleCommand(client, target, context, msg);
+        
+        if (result) {
+            logInfo('DIRECT HANDLER: Command executed successfully');
+        } else {
+            logInfo('DIRECT HANDLER: Command failed or not found');
+        }
+    } else {
+        // Not a command, process through plugins
+        const messageObj = {
+            channel: target,
+            tags: context,
+            message: msg,
+            self
+        };
+        
+        // Process the message through plugins
+        await pluginManager.processIncomingMessage(messageObj);
     }
-    
-    // We don't need to process the message here since it's already being processed
-    // in the direct message handler added to the client
 }
 
 async function handleExit() {
@@ -854,7 +871,7 @@ const connectionCheckInterval = setInterval(() => {
         clearInterval(connectionCheckInterval);
         return;
     }
-    
+
     // Use async/await pattern with error handling
     (async () => {
         try {
@@ -1505,3 +1522,297 @@ async function shutdown(signal) {
         process.exit(1);
     }
 }
+
+// Add the help command handlers after the existing message handler
+
+// Help command handler
+async function handleHelpCommand(client, channel, context, params) {
+  try {
+    // If a specific command is requested, show help for that command
+    if (params.length > 0) {
+      const commandName = params[0].toLowerCase();
+      return await showCommandHelp(client, channel, context, commandName);
+    }
+    
+    // Otherwise, show a list of all commands
+    return await listCommands(client, channel, context);
+  } catch (error) {
+    logger.error(`Error in help command:`, error);
+    return false;
+  }
+}
+
+// List all available commands
+async function listCommands(client, channel, context) {
+  try {
+    // Get all commands from the plugin manager
+    const commands = pluginManager.listCommands();
+    
+    // Group commands by plugin
+    const commandsByPlugin = {};
+    for (const command of commands) {
+      const pluginName = command.pluginName || 'core';
+      
+      if (!commandsByPlugin[pluginName]) {
+        commandsByPlugin[pluginName] = [];
+      }
+      
+      commandsByPlugin[pluginName].push(command.name);
+    }
+    
+    // Add the built-in help command
+    if (!commandsByPlugin['core']) {
+      commandsByPlugin['core'] = [];
+    }
+    commandsByPlugin['core'].push('help');
+    
+    // Build the message
+    let message = `@${context.username} Available commands: `;
+    
+    // Add commands from each plugin
+    const pluginNames = Object.keys(commandsByPlugin).sort();
+    for (let i = 0; i < pluginNames.length; i++) {
+      const pluginName = pluginNames[i];
+      const pluginCommands = commandsByPlugin[pluginName].sort();
+      
+      message += `${pluginCommands.map(cmd => `!${cmd}`).join(', ')}`;
+      
+      if (i < pluginNames.length - 1) {
+        message += ', ';
+      }
+    }
+    
+    // Add help text
+    message += '. Use !help [command] for more information on a specific command.';
+    
+    // Send the message
+    await client.say(channel, message);
+    return true;
+  } catch (error) {
+    logger.error(`Error listing commands:`, error);
+    await client.say(channel, `@${context.username} Error listing commands.`);
+    return false;
+  }
+}
+
+// Show help for a specific command
+async function showCommandHelp(client, channel, context, commandName) {
+  try {
+    // Handle built-in help command
+    if (commandName === 'help') {
+      await client.say(channel, `@${context.username} Help for !help: List available commands or get help for a specific command. Usage: !help [command]`);
+      return true;
+    }
+    
+    // Get all commands
+    const commands = pluginManager.listCommands();
+    
+    // Find the command
+    const command = commands.find(cmd => 
+      cmd.name === commandName || 
+      (cmd.config && cmd.config.aliases && Array.isArray(cmd.config.aliases) && cmd.config.aliases.includes(commandName))
+    );
+    
+    if (!command) {
+      // If command not found, check if it's a plugin name
+      const plugin = pluginManager.getPlugin(commandName);
+      if (plugin && plugin.help) {
+        return await showPluginHelp(client, channel, context, plugin);
+      }
+      
+      await client.say(channel, `@${context.username} Command not found: ${commandName}`);
+      return false;
+    }
+    
+    // Build the help message
+    let message = `@${context.username} Help for !${command.name}: ${command.config?.description || 'No description'}`;
+    
+    // Add usage
+    if (command.config?.usage) {
+      message += `. Usage: ${command.config.usage}`;
+    }
+    
+    // Add aliases
+    if (command.config?.aliases && Array.isArray(command.config.aliases) && command.config.aliases.length > 0) {
+      message += `. Aliases: ${command.config.aliases.map(alias => `!${alias}`).join(', ')}`;
+    }
+    
+    // Add cooldown
+    if (command.config?.cooldown) {
+      message += `. Cooldown: ${command.config.cooldown}s`;
+    }
+    
+    // Add mod only
+    if (command.config?.modOnly) {
+      message += `. Mod only: Yes`;
+    }
+    
+    // Send the message
+    await client.say(channel, message);
+    return true;
+  } catch (error) {
+    logger.error(`Error showing command help:`, error);
+    await client.say(channel, `@${context.username} Error showing command help.`);
+    return false;
+  }
+}
+
+// Show help for a plugin
+async function showPluginHelp(client, channel, context, plugin) {
+  try {
+    if (!plugin.help) {
+      await client.say(channel, `@${context.username} No help information available for plugin: ${plugin.name}`);
+      return false;
+    }
+    
+    // Send plugin description
+    await client.say(channel, `@${context.username} Plugin: ${plugin.name} - ${plugin.help.description}`);
+    
+    // If plugin has command help information, list the commands
+    if (plugin.help.commands && plugin.help.commands.length > 0) {
+      await client.say(channel, `@${context.username} Commands in ${plugin.name}:`);
+      
+      // Send help for each command
+      for (const cmd of plugin.help.commands) {
+        let cmdHelp = `!${cmd.name}: ${cmd.description}`;
+        if (cmd.usage) {
+          cmdHelp += `. Usage: ${cmd.usage}`;
+        }
+        await client.say(channel, cmdHelp);
+        
+        // If there are examples, send them too (up to 3)
+        if (cmd.examples && cmd.examples.length > 0) {
+          const examples = cmd.examples.slice(0, 3);
+          await client.say(channel, `@${context.username} Examples: ${examples.join(' | ')}`);
+        }
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error(`Error showing plugin help:`, error);
+    await client.say(channel, `@${context.username} Error showing plugin help.`);
+    return false;
+  }
+}
+
+// Handle plugin command 
+async function handlePluginCommand(client, channel, context, params) {
+  try {
+    // Check if user is a moderator
+    const isMod = context.mod || context.badges?.broadcaster === '1' || 
+                  context.username.toLowerCase() === process.env.CHANNEL_NAME.toLowerCase();
+                  
+    if (!isMod) {
+      await client.say(channel, `@${context.username} Only moderators can use the plugin command.`);
+      return false;
+    }
+    
+    if (params.length < 2) {
+      await client.say(channel, `@${context.username} Usage: !plugin <name> <action>. Actions: enable, disable, reload, list`);
+      return false;
+    }
+    
+    const pluginName = params[0].toLowerCase();
+    const action = params[1].toLowerCase();
+    
+    // Handle list action (special case that doesn't require a plugin name)
+    if (pluginName === 'list') {
+      return await listPlugins(client, channel, context);
+    }
+    
+    // For other actions, get the plugin
+    const plugin = pluginManager.getPlugin(pluginName);
+    
+    if (!plugin && action !== 'list') {
+      await client.say(channel, `@${context.username} Plugin not found: ${pluginName}`);
+      return false;
+    }
+    
+    switch (action) {
+      case 'enable':
+        if (plugin.config && plugin.config.enabled) {
+          await client.say(channel, `@${context.username} Plugin ${pluginName} is already enabled.`);
+          return true;
+        }
+        
+        const enabled = pluginManager.enablePlugin(pluginName);
+        if (enabled) {
+          await client.say(channel, `@${context.username} Plugin ${pluginName} has been enabled.`);
+        } else {
+          await client.say(channel, `@${context.username} Failed to enable plugin ${pluginName}.`);
+        }
+        return enabled;
+        
+      case 'disable':
+        if (plugin.config && !plugin.config.enabled) {
+          await client.say(channel, `@${context.username} Plugin ${pluginName} is already disabled.`);
+          return true;
+        }
+        
+        const disabled = pluginManager.disablePlugin(pluginName);
+        if (disabled) {
+          await client.say(channel, `@${context.username} Plugin ${pluginName} has been disabled.`);
+        } else {
+          await client.say(channel, `@${context.username} Failed to disable plugin ${pluginName}.`);
+        }
+        return disabled;
+        
+      case 'reload':
+        const reloaded = pluginManager.reloadPlugin(pluginName);
+        if (reloaded) {
+          await client.say(channel, `@${context.username} Plugin ${pluginName} has been reloaded.`);
+        } else {
+          await client.say(channel, `@${context.username} Failed to reload plugin ${pluginName}.`);
+        }
+        return reloaded;
+        
+      default:
+        await client.say(channel, `@${context.username} Unknown plugin action: ${action}. Available actions: enable, disable, reload, list`);
+        return false;
+    }
+  } catch (error) {
+    logger.error(`Error handling plugin command:`, error);
+    return false;
+  }
+}
+
+// List all plugins
+async function listPlugins(client, channel, context) {
+  try {
+    const plugins = pluginManager.getAllPlugins();
+    
+    if (plugins.length === 0) {
+      await client.say(channel, `@${context.username} No plugins loaded.`);
+      return true;
+    }
+    
+    // Group plugins by status
+    const enabledPlugins = [];
+    const disabledPlugins = [];
+    
+    for (const plugin of plugins) {
+      if (plugin.config && plugin.config.enabled) {
+        enabledPlugins.push(plugin.name);
+      } else {
+        disabledPlugins.push(plugin.name);
+      }
+    }
+    
+    // Show enabled plugins
+    if (enabledPlugins.length > 0) {
+      await client.say(channel, `@${context.username} Enabled plugins: ${enabledPlugins.join(', ')}`);
+    }
+    
+    // Show disabled plugins
+    if (disabledPlugins.length > 0) {
+      await client.say(channel, `@${context.username} Disabled plugins: ${disabledPlugins.join(', ')}`);
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error(`Error listing plugins:`, error);
+    await client.say(channel, `@${context.username} Error listing plugins.`);
+    return false;
+  }
+} 

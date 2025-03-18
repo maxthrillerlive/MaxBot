@@ -525,36 +525,37 @@ class ConfigManager {
   }
 
   /**
-   * Load a plugin's configuration without saving it back
+   * Load a plugin's configuration without saving it back to file
    * @param {string} pluginName - The name of the plugin
-   * @returns {Object} The plugin's configuration
+   * @returns {Object|null} - The plugin configuration or null if error
    */
   loadPluginConfigWithoutSaving(pluginName) {
     try {
+      // Check if the plugin has its own configuration file
       const pluginConfigPath = path.join(this.configDir, `${pluginName}.json`);
       
-      // Check if the plugin has its own config file
       if (fs.existsSync(pluginConfigPath)) {
+        // Load the plugin-specific configuration
         const pluginConfig = this.loadConfigFile(pluginConfigPath);
         
         if (pluginConfig) {
-          this.logger.info(`Loaded configuration for plugin ${pluginName} from ${pluginConfigPath} (without saving)`);
+          this.logger.info(`Loaded configuration for plugin ${pluginName} from ${pluginConfigPath}`);
           return pluginConfig;
         }
       }
       
-      // If no specific config file exists, return the plugin config from the main config
-      if (this.config.plugins && 
-          this.config.plugins.settings && 
-          this.config.plugins.settings[pluginName]) {
+      // If no plugin-specific configuration exists, check if it's in the main plugins config
+      if (this.config.plugins && this.config.plugins.settings && this.config.plugins.settings[pluginName]) {
+        this.logger.info(`Using main configuration for plugin ${pluginName}`);
         return this.config.plugins.settings[pluginName];
       }
       
-      // Return an empty object if no configuration exists
+      // If no configuration exists, return an empty object
+      this.logger.info(`No configuration found for plugin ${pluginName}, using empty config`);
       return {};
     } catch (error) {
       this.logger.error(`Error loading configuration for plugin ${pluginName}: ${error.message}`);
-      return {};
+      return null;
     }
   }
 }
