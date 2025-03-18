@@ -69,8 +69,8 @@ const plugin = {
         // Set up commands
         this.setupCommands();
         
-        // Register message handlers if needed
-        bot.onMessage(this.handleMessage.bind(this));
+        // Set up event listeners
+        this.setupEventListeners();
         
         this.logger.info(`[${this.name}] Plugin initialized successfully`);
         return true;
@@ -112,6 +112,62 @@ const plugin = {
             }
             // Add more commands as needed
         ];
+    },
+    
+    // Set up event listeners
+    setupEventListeners: function() {
+        // Subscribe to Twitch events
+        this.bot.events.on('twitch:message', this.onTwitchMessage.bind(this));
+        this.bot.events.on('twitch:connected', this.onTwitchConnected.bind(this));
+        
+        // Subscribe to command events
+        this.bot.events.on('command:before', this.onCommandBefore.bind(this));
+        this.bot.events.on('command:after', this.onCommandAfter.bind(this));
+        
+        // Subscribe to timer events
+        this.bot.events.on('timer:minute', this.onMinute.bind(this));
+        
+        // Subscribe to plugin events
+        this.bot.events.on('plugin:enabled', this.onPluginEnabled.bind(this));
+        this.bot.events.on('plugin:disabled', this.onPluginDisabled.bind(this));
+        
+        // Emit a custom event
+        this.bot.emitEvent('initialized', { plugin: this.name, timestamp: Date.now() });
+    },
+    
+    // Event handlers
+    onTwitchMessage: function(data) {
+        // Called for every Twitch message - be careful not to do too much here
+        // this.logger.info(`[${this.name}] Message received: ${data.message}`);
+    },
+    
+    onTwitchConnected: function(data) {
+        this.logger.info(`[${this.name}] Connected to Twitch at ${data.address}:${data.port}`);
+    },
+    
+    onCommandBefore: function(data) {
+        // Called before a command is processed
+        // this.logger.info(`[${this.name}] Command about to be processed: ${data.command}`);
+    },
+    
+    onCommandAfter: function(data) {
+        // Called after a command is processed
+        // this.logger.info(`[${this.name}] Command processed: ${data.command} (success: ${data.success})`);
+    },
+    
+    onMinute: function(data) {
+        // Called every minute - be careful not to do too much here
+        // this.logger.info(`[${this.name}] Minute tick: ${data.count}`);
+    },
+    
+    onPluginEnabled: function(data) {
+        // Called when a plugin is enabled
+        this.logger.info(`[${this.name}] Plugin enabled: ${data.name}`);
+    },
+    
+    onPluginDisabled: function(data) {
+        // Called when a plugin is disabled
+        this.logger.info(`[${this.name}] Plugin disabled: ${data.name}`);
     },
     
     // Optional methods

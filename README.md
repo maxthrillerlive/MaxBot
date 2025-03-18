@@ -413,4 +413,96 @@ Usage:
 - `!plugin <name> disable` - Disables a plugin
 - `!plugin <name> reload` - Reloads a plugin from disk
 
-Only moderators can use the plugin management commands. 
+Only moderators can use the plugin management commands.
+
+# Using Plugin Hooks
+
+MaxBot provides a comprehensive event hook system that allows plugins to respond to various events within the bot. This enables plugins to react to Twitch events, bot actions, commands, timers, and other plugin lifecycle events.
+
+## Available Events
+
+### Twitch Events
+- **twitch:message** - Triggered for every message in chat
+- **twitch:connected** - Triggered when the bot connects to Twitch
+- **twitch:join** - Triggered when the bot joins a channel
+- **twitch:part** - Triggered when the bot leaves a channel
+- **twitch:disconnected** - Triggered when the bot disconnects from Twitch
+- **twitch:subscription** - Triggered when someone subscribes
+- **twitch:resub** - Triggered when someone resubscribes
+- **twitch:subgift** - Triggered when someone gifts a subscription
+- **twitch:cheer** - Triggered when someone cheers with bits
+- **twitch:raid** - Triggered when someone raids the channel
+
+### Command Events
+- **command:before** - Triggered before a command is processed
+- **command:after** - Triggered after a command is processed (includes success status)
+
+### Timer Events
+- **timer:minute** - Triggered every minute
+- **timer:hour** - Triggered every hour
+- **bot:uptime** - Triggered every minute with bot uptime information
+
+### Plugin Lifecycle Events
+- **plugin:enabled** - Triggered when a plugin is enabled
+- **plugin:disabled** - Triggered when a plugin is disabled
+- **plugin:loaded** - Triggered when a plugin is loaded
+- **plugin:unload** - Triggered when a plugin is about to be unloaded
+- **plugin:reloaded** - Triggered when a plugin is reloaded
+
+### Custom Events
+Plugins can emit and listen to custom events as well:
+- **custom:{eventName}** - General custom events
+- **plugin:{pluginName}:{eventName}** - Plugin-specific custom events
+
+## Using Event Hooks in Your Plugin
+
+To use the event system, subscribe to events in your plugin's initialization:
+
+```javascript
+// In your plugin's init function or setupEventListeners method
+this.bot.events.on('twitch:message', this.onTwitchMessage.bind(this));
+this.bot.events.on('command:before', this.onCommandBefore.bind(this));
+```
+
+Then implement the corresponding event handlers:
+
+```javascript
+// Event handler methods
+onTwitchMessage(data) {
+  // Handle the event
+  this.logger.info(`Message from ${data.tags.username}: ${data.message}`);
+}
+
+onCommandBefore(data) {
+  this.logger.info(`Command ${data.command} is about to be executed`);
+}
+```
+
+## Emitting Custom Events
+
+Plugins can emit their own custom events using the emitEvent method:
+
+```javascript
+// Emit a custom event
+this.bot.emitEvent('myCustomEvent', { 
+  plugin: this.name,
+  timestamp: Date.now(),
+  someData: 'Custom data'
+});
+```
+
+Other plugins can then listen for these custom events:
+
+```javascript
+// Listen for a custom event from any plugin
+this.bot.events.on('custom:myCustomEvent', this.onMyCustomEvent.bind(this));
+
+// Listen for a custom event from a specific plugin
+this.bot.events.on('plugin:specificPlugin:myCustomEvent', this.onSpecificPluginEvent.bind(this));
+```
+
+## Example Implementation
+
+See the template plugins for complete examples of how to use the event system:
+- `plugins/template.js` - Object-based plugin template with event hooks
+- `plugins/template-class.js` - Class-based plugin template with event hooks 

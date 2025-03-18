@@ -209,7 +209,7 @@ class PluginManager {
           this.configManager.set('plugins.enabled', enabledPlugins);
         }
         
-        // Update the plugin's configuration
+        // Update the plugin's configuration in the main config
         this.configManager.set(`plugins.settings.${pluginName}.enabled`, true);
       }
       
@@ -218,6 +218,14 @@ class PluginManager {
       // Initialize the plugin if the bot is available
       if (this.bot && typeof plugin.init === 'function') {
         plugin.init(this.bot, this.logger);
+      }
+      
+      // Emit plugin enabled event
+      if (this.bot && this.bot.events) {
+        this.bot.events.emit('plugin:enabled', { 
+          name: pluginName,
+          plugin
+        });
       }
       
       return true;
@@ -262,11 +270,20 @@ class PluginManager {
           this.configManager.set('plugins.enabled', enabledPlugins);
         }
         
-        // Update the plugin's configuration
+        // Update the plugin's configuration in the main config
         this.configManager.set(`plugins.settings.${pluginName}.enabled`, false);
       }
       
       this.logger.info(`[PluginManager] Plugin ${pluginName} disabled`);
+      
+      // Emit plugin disabled event
+      if (this.bot && this.bot.events) {
+        this.bot.events.emit('plugin:disabled', { 
+          name: pluginName,
+          plugin
+        });
+      }
+      
       return true;
     } catch (error) {
       this.logger.error(`[PluginManager] Error disabling plugin ${pluginName}: ${error.message}`);
@@ -285,10 +302,16 @@ class PluginManager {
   
   /**
    * Get all loaded plugins
-   * @returns {Array} - Array of all loaded plugins
+   * @returns {Array} - Array of plugins
    */
   getAllPlugins() {
-    return Array.from(this.plugins.values());
+    const pluginArray = [];
+    
+    for (const [name, plugin] of this.plugins.entries()) {
+      pluginArray.push(plugin);
+    }
+    
+    return pluginArray;
   }
   
   /**
@@ -594,68 +617,52 @@ class PluginManager {
   }
   
   /**
-   * Reload a plugin by name
+   * Reload a plugin
    * @param {string} pluginName - The name of the plugin to reload
    * @returns {boolean} - Whether the plugin was successfully reloaded
    */
   reloadPlugin(pluginName) {
     this.logger.info(`[PluginManager] Reloading plugin: ${pluginName}`);
     
-    // Check if the plugin exists
     const plugin = this.plugins.get(pluginName);
     if (!plugin) {
       this.logger.warn(`[PluginManager] Cannot reload plugin ${pluginName}: Plugin not found`);
       return false;
     }
     
-    // Save the current plugin configuration
-    const wasEnabled = plugin.config && plugin.config.enabled;
-    const pluginConfig = { ...plugin.config };
-    
     try {
-      // Call the plugin's disable method if it exists and is enabled
-      if (wasEnabled && typeof plugin.disable === 'function') {
-        plugin.disable();
-      }
-      
-      // Get the plugin file path
-      const pluginFiles = fs.readdirSync(this.pluginsDir)
-        .filter(file => file.endsWith('.js'));
-      
-      let pluginFile = null;
-      for (const file of pluginFiles) {
-        const tempPluginPath = path.join(this.pluginsDir, file);
-        const tempPlugin = require.cache[require.resolve(tempPluginPath)];
-        
-        if (tempPlugin && tempPlugin.exports && tempPlugin.exports.name === pluginName) {
-          pluginFile = file;
-          break;
-        }
-      }
-      
-      // Remove the plugin from our collection
-      this.plugins.delete(pluginName);
-      
-      // If the plugin file no longer exists, unregister it and return success
+      // Get plugin file path
+      const pluginFile = this.findPluginFile(pluginName);
       if (!pluginFile) {
-        this.logger.info(`[PluginManager] Plugin ${pluginName} no longer exists, unregistering it`);
-        
-        // Update the enabled plugins list in the configuration if needed
-        if (this.configManager) {
-          const enabledPlugins = this.configManager.get('plugins.enabled', []);
-          const index = enabledPlugins.indexOf(pluginName);
-          if (index !== -1) {
-            enabledPlugins.splice(index, 1);
-            this.configManager.set('plugins.enabled', enabledPlugins);
-          }
-        }
-        
-        return true;
+        this.logger.warn(`[PluginManager] Cannot reload plugin ${pluginName}: Plugin file not found`);
+        return false;
       }
       
       const pluginPath = path.join(this.pluginsDir, pluginFile);
       
-      // Clear require cache to ensure we get fresh plugin code
+      // Save whether the plugin was enabled
+      const wasEnabled = plugin.config && plugin.config.enabled;
+      
+      // Save plugin configuration
+      const pluginConfig = plugin.config ? { ...plugin.config } : { enabled: wasEnabled };
+      
+      // Call the plugin's disable method if it exists and it's enabled
+      if (wasEnabled && typeof plugin.disable === 'function') {
+        plugin.disable();
+      }
+      
+      // Emit plugin unload event
+      if (this.bot && this.bot.events) {
+        this.bot.events.emit('plugin:unload', { 
+          name: pluginName,
+          plugin
+        });
+      }
+      
+      // Remove the plugin
+      this.plugins.delete(pluginName);
+      
+      // Clear require cache
       delete require.cache[require.resolve(pluginPath)];
       
       // Load the plugin again
@@ -673,6 +680,14 @@ class PluginManager {
       // Add the plugin to our collection
       this.plugins.set(reloadedPlugin.name, reloadedPlugin);
       
+      // Emit plugin loaded event
+      if (this.bot && this.bot.events) {
+        this.bot.events.emit('plugin:loaded', { 
+          name: pluginName,
+          plugin: reloadedPlugin
+        });
+      }
+      
       // Initialize the plugin if it was enabled
       if (wasEnabled) {
         reloadedPlugin.init(this.bot, this.logger);
@@ -681,9 +696,26 @@ class PluginManager {
         if (typeof reloadedPlugin.enable === 'function') {
           reloadedPlugin.enable();
         }
+        
+        // Emit plugin enabled event
+        if (this.bot && this.bot.events) {
+          this.bot.events.emit('plugin:enabled', { 
+            name: pluginName,
+            plugin: reloadedPlugin
+          });
+        }
       }
       
       this.logger.info(`[PluginManager] Successfully reloaded plugin: ${pluginName}`);
+      
+      // Emit plugin reloaded event
+      if (this.bot && this.bot.events) {
+        this.bot.events.emit('plugin:reloaded', { 
+          name: pluginName,
+          plugin: reloadedPlugin
+        });
+      }
+      
       return true;
     } catch (error) {
       this.logger.error(`[PluginManager] Error reloading plugin ${pluginName}: ${error.message}`);
@@ -792,6 +824,44 @@ class PluginManager {
     
     this.logger.info(`[PluginManager] Reloaded ${results.success.length} plugins successfully, ${results.failed.length} failed`);
     return results;
+  }
+  
+  /**
+   * Find the file for a plugin by name
+   * @param {string} pluginName - The name of the plugin to find
+   * @returns {string|null} - The plugin file name or null if not found
+   * @private
+   */
+  findPluginFile(pluginName) {
+    try {
+      const pluginFiles = fs.readdirSync(this.pluginsDir)
+        .filter(file => file.endsWith('.js'));
+      
+      // First try to find by exact file name (pluginName.js)
+      const exactMatch = pluginFiles.find(file => file === `${pluginName}.js`);
+      if (exactMatch) {
+        return exactMatch;
+      }
+      
+      // If no exact match, try to find by plugin name property
+      for (const file of pluginFiles) {
+        try {
+          const pluginPath = path.join(this.pluginsDir, file);
+          const pluginModule = require.cache[require.resolve(pluginPath)];
+          
+          if (pluginModule && pluginModule.exports && pluginModule.exports.name === pluginName) {
+            return file;
+          }
+        } catch (error) {
+          this.logger.warn(`[PluginManager] Error checking plugin file ${file}:`, error);
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.error(`[PluginManager] Error finding plugin file for ${pluginName}:`, error);
+      return null;
+    }
   }
 }
 

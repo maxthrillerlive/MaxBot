@@ -7,6 +7,8 @@ const { spawn } = require('child_process');
 const twitchAuth = require('./twitch-auth'); // Import the new Twitch auth module
 const PluginManager = require('./pluginManager'); // Import the plugin manager
 const ConfigManager = require('./configManager'); // Import the configuration manager
+const EventEmitter = require('events');
+const tmi = require('tmi.js');
 
 // Add this line to define startTime
 const startTime = Date.now();
@@ -358,6 +360,7 @@ const botObject = {
     pluginManager,
     logger,
     messageHandlers: [],
+    events: new EventEmitter(), // Add event emitter for hooks
     onMessage: function(handler) {
         this.messageHandlers.push(handler);
     }
@@ -462,6 +465,14 @@ async function onMessageHandler(target, context, msg, self) {
     // Skip messages from the bot itself
     if (self) return;
     
+    // Emit a raw message event for all messages
+    botObject.events.emit('twitch:message', { 
+        channel: target, 
+        tags: context, 
+        message: msg, 
+        self 
+    });
+    
     // Process commands (support both ! and ? prefixes)
     if (msg.startsWith('!') || msg.startsWith('?')) {
         // Skip if the message is already in cache (duplicate)
@@ -471,22 +482,65 @@ async function onMessageHandler(target, context, msg, self) {
         
         logInfo('DIRECT HANDLER: Processing command: ' + msg);
         
+        // Extract command name
+        const commandName = msg.trim().split(' ')[0].substring(1).toLowerCase();
+        const params = msg.trim().split(' ').slice(1);
+        
+        // Emit command event before processing
+        botObject.events.emit('command:before', { 
+            channel: target, 
+            tags: context, 
+            command: commandName, 
+            params,
+            message: msg
+        });
+        
         // Check if it's a help command first, since that's built-in
         if (msg.toLowerCase().startsWith('!help') || msg.toLowerCase().startsWith('?help')) {
-            const params = msg.trim().split(' ').slice(1);
-            await handleHelpCommand(client, target, context, params);
+            const result = await handleHelpCommand(client, target, context, params);
+            
+            // Emit command completion event
+            botObject.events.emit('command:after', { 
+                channel: target, 
+                tags: context, 
+                command: 'help', 
+                params,
+                message: msg,
+                success: result
+            });
+            
             return;
         }
         
         // Check if it's a plugin command, since that's built-in too
         if (msg.toLowerCase().startsWith('!plugin') || msg.toLowerCase().startsWith('?plugin')) {
-            const params = msg.trim().split(' ').slice(1);
-            await handlePluginCommand(client, target, context, params);
+            const result = await handlePluginCommand(client, target, context, params);
+            
+            // Emit command completion event
+            botObject.events.emit('command:after', { 
+                channel: target, 
+                tags: context, 
+                command: 'plugin', 
+                params,
+                message: msg,
+                success: result
+            });
+            
             return;
         }
         
         // Use the plugin manager to handle other commands
         const result = await pluginManager.handleCommand(client, target, context, msg);
+        
+        // Emit command completion event
+        botObject.events.emit('command:after', { 
+            channel: target, 
+            tags: context, 
+            command: commandName, 
+            params,
+            message: msg,
+            success: result
+        });
         
         if (result) {
             logInfo('DIRECT HANDLER: Command executed successfully');
@@ -1815,4 +1869,112 @@ async function listPlugins(client, channel, context) {
     await client.say(channel, `@${context.username} Error listing plugins.`);
     return false;
   }
-} 
+}
+
+// Set up event handlers for the Twitch client
+client.on('connected', async (address, port) => {
+  logger.info(`Connected to Twitch at ${address}:${port}`);
+  
+  // Emit connected event for plugins
+  botObject.events.emit('twitch:connected', { address, port });
+});
+
+client.on('join', (channel, username, self) => {
+  if (self) {
+    logger.info(`Successfully joined channel ${channel}`);
+    
+    // Emit join event for plugins
+    botObject.events.emit('twitch:join', { channel, username, self });
+  }
+});
+
+// Emit events for various Twitch actions
+client.on('subscription', (channel, username, method, message, userstate) => {
+  botObject.events.emit('twitch:subscription', { 
+    channel, username, method, message, userstate 
+  });
+});
+
+client.on('resub', (channel, username, months, message, userstate, methods) => {
+  botObject.events.emit('twitch:resub', { 
+    channel, username, months, message, userstate, methods 
+  });
+});
+
+client.on('subgift', (channel, username, streakMonths, recipient, methods, userstate) => {
+  botObject.events.emit('twitch:subgift', { 
+    channel, username, streakMonths, recipient, methods, userstate 
+  });
+});
+
+client.on('cheer', (channel, userstate, message) => {
+  botObject.events.emit('twitch:cheer', { 
+    channel, userstate, message 
+  });
+});
+
+client.on('raided', (channel, username, viewers) => {
+  botObject.events.emit('twitch:raid', { 
+    channel, username, viewers 
+  });
+});
+
+client.on('part', (channel, username, self) => {
+  if (self) {
+    logger.info(`Left channel ${channel}`);
+    botObject.events.emit('twitch:part', { channel, username, self });
+  }
+});
+
+client.on('disconnected', (reason) => {
+  logger.warn(`Disconnected from Twitch: ${reason}`);
+  botObject.events.emit('twitch:disconnected', { reason });
+});
+
+// Set up a timer to emit regular events for plugins
+let minuteCounter = 0;
+const MINUTE = 60 * 1000;
+setInterval(() => {
+  // Emit a minute tick event
+  minuteCounter++;
+  
+  // Emit timer events
+  botObject.events.emit('timer:minute', { count: minuteCounter });
+  
+  // Emit hourly event
+  if (minuteCounter % 60 === 0) {
+    botObject.events.emit('timer:hour', { count: Math.floor(minuteCounter / 60) });
+  }
+  
+  // Emit events for the uptime
+  const uptime = Date.now() - startTime;
+  botObject.events.emit('bot:uptime', { 
+    startTime,
+    uptime,
+    uptimeMinutes: Math.floor(uptime / MINUTE),
+    uptimeHours: Math.floor(uptime / (MINUTE * 60)),
+    uptimeDays: Math.floor(uptime / (MINUTE * 60 * 24))
+  });
+}, MINUTE);
+
+// Expose a method to allow plugins to emit events
+botObject.emitEvent = function(eventName, data) {
+  if (typeof eventName !== 'string' || !eventName) {
+    logger.warn('Invalid event name provided to emitEvent');
+    return false;
+  }
+  
+  try {
+    // Add plugin name to custom events if it comes from a plugin
+    if (data && data.plugin) {
+      botObject.events.emit(`plugin:${data.plugin}:${eventName}`, data);
+    }
+    
+    // Also emit the general event
+    botObject.events.emit(`custom:${eventName}`, data);
+    return true;
+  } catch (error) {
+    logger.error(`Error emitting custom event ${eventName}:`, error);
+    return false;
+  }
+}; 

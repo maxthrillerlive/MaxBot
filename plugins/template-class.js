@@ -72,8 +72,8 @@ class TemplatePlugin {
     // Set up commands
     this.setupCommands();
     
-    // Register message handlers if needed
-    bot.onMessage(this.handleMessage.bind(this));
+    // Set up event listeners
+    this.setupEventListeners();
     
     this.logger.info(`[${this.name}] Plugin initialized successfully`);
     return true;
@@ -112,6 +112,181 @@ class TemplatePlugin {
         execute: this.exampleCommand.bind(this)
       }
     ];
+  }
+  
+  /**
+   * Set up event listeners
+   */
+  setupEventListeners() {
+    // Subscribe to Twitch events
+    this.bot.events.on('twitch:message', this.onTwitchMessage.bind(this));
+    this.bot.events.on('twitch:connected', this.onTwitchConnected.bind(this));
+    this.bot.events.on('twitch:subscription', this.onSubscription.bind(this));
+    this.bot.events.on('twitch:cheer', this.onCheer.bind(this));
+    this.bot.events.on('twitch:raid', this.onRaid.bind(this));
+    
+    // Subscribe to command events
+    this.bot.events.on('command:before', this.onCommandBefore.bind(this));
+    this.bot.events.on('command:after', this.onCommandAfter.bind(this));
+    
+    // Subscribe to timer events
+    this.bot.events.on('timer:minute', this.onMinute.bind(this));
+    this.bot.events.on('timer:hour', this.onHour.bind(this));
+    this.bot.events.on('bot:uptime', this.onUptime.bind(this));
+    
+    // Subscribe to plugin events
+    this.bot.events.on('plugin:enabled', this.onPluginEnabled.bind(this));
+    this.bot.events.on('plugin:disabled', this.onPluginDisabled.bind(this));
+    this.bot.events.on('plugin:loaded', this.onPluginLoaded.bind(this));
+    this.bot.events.on('plugin:unload', this.onPluginUnload.bind(this));
+    this.bot.events.on('plugin:reloaded', this.onPluginReloaded.bind(this));
+    
+    // Subscribe to custom events - both general and plugin-specific
+    this.bot.events.on('custom:example', this.onCustomEvent.bind(this));
+    this.bot.events.on(`plugin:${this.name}:example`, this.onPluginSpecificEvent.bind(this));
+    
+    // Emit a custom event
+    this.bot.emitEvent('initialized', { plugin: this.name, timestamp: Date.now() });
+  }
+  
+  /**
+   * Twitch message event handler
+   * @param {Object} data - Event data
+   */
+  onTwitchMessage(data) {
+    // Called for every Twitch message - be careful not to do too much here
+    // this.logger.info(`[${this.name}] Message received: ${data.message}`);
+  }
+  
+  /**
+   * Twitch connected event handler
+   * @param {Object} data - Event data
+   */
+  onTwitchConnected(data) {
+    this.logger.info(`[${this.name}] Connected to Twitch at ${data.address}:${data.port}`);
+  }
+  
+  /**
+   * Subscription event handler
+   * @param {Object} data - Event data
+   */
+  onSubscription(data) {
+    this.logger.info(`[${this.name}] Subscription: ${data.username}`);
+  }
+  
+  /**
+   * Cheer event handler
+   * @param {Object} data - Event data
+   */
+  onCheer(data) {
+    this.logger.info(`[${this.name}] Cheer: ${data.userstate.bits} bits from ${data.userstate.username}`);
+  }
+  
+  /**
+   * Raid event handler
+   * @param {Object} data - Event data
+   */
+  onRaid(data) {
+    this.logger.info(`[${this.name}] Raid from ${data.username} with ${data.viewers} viewers`);
+  }
+  
+  /**
+   * Command before event handler
+   * @param {Object} data - Event data
+   */
+  onCommandBefore(data) {
+    // Called before a command is processed
+    // this.logger.info(`[${this.name}] Command about to be processed: ${data.command}`);
+  }
+  
+  /**
+   * Command after event handler
+   * @param {Object} data - Event data
+   */
+  onCommandAfter(data) {
+    // Called after a command is processed
+    // this.logger.info(`[${this.name}] Command processed: ${data.command} (success: ${data.success})`);
+  }
+  
+  /**
+   * Minute timer event handler
+   * @param {Object} data - Event data
+   */
+  onMinute(data) {
+    // Called every minute - be careful not to do too much here
+    // this.logger.info(`[${this.name}] Minute tick: ${data.count}`);
+  }
+  
+  /**
+   * Hour timer event handler
+   * @param {Object} data - Event data
+   */
+  onHour(data) {
+    this.logger.info(`[${this.name}] Hour tick: ${data.count}`);
+  }
+  
+  /**
+   * Uptime event handler
+   * @param {Object} data - Event data
+   */
+  onUptime(data) {
+    // this.logger.info(`[${this.name}] Bot uptime: ${data.uptimeHours} hours`);
+  }
+  
+  /**
+   * Plugin enabled event handler
+   * @param {Object} data - Event data
+   */
+  onPluginEnabled(data) {
+    this.logger.info(`[${this.name}] Plugin enabled: ${data.name}`);
+  }
+  
+  /**
+   * Plugin disabled event handler
+   * @param {Object} data - Event data
+   */
+  onPluginDisabled(data) {
+    this.logger.info(`[${this.name}] Plugin disabled: ${data.name}`);
+  }
+  
+  /**
+   * Plugin loaded event handler
+   * @param {Object} data - Event data
+   */
+  onPluginLoaded(data) {
+    this.logger.info(`[${this.name}] Plugin loaded: ${data.name}`);
+  }
+  
+  /**
+   * Plugin unload event handler
+   * @param {Object} data - Event data
+   */
+  onPluginUnload(data) {
+    this.logger.info(`[${this.name}] Plugin unloaded: ${data.name}`);
+  }
+  
+  /**
+   * Plugin reloaded event handler
+   * @param {Object} data - Event data
+   */
+  onPluginReloaded(data) {
+    this.logger.info(`[${this.name}] Plugin reloaded: ${data.name}`);
+  }
+  
+  /**
+   * Custom event handler
+   * @param {Object} data - Event data
+   */
+  onCustomEvent(data) {
+    this.logger.info(`[${this.name}] Custom event: ${JSON.stringify(data)}`);
+  }
+  
+  /**
+   * Plugin-specific event handler
+   * @param {Object} data - Event data
+   */
+  onPluginSpecificEvent(data) {
+    this.logger.info(`[${this.name}] Plugin-specific event: ${JSON.stringify(data)}`);
   }
   
   /**
