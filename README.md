@@ -506,3 +506,56 @@ this.bot.events.on('plugin:specificPlugin:myCustomEvent', this.onSpecificPluginE
 See the template plugins for complete examples of how to use the event system:
 - `plugins/template.js` - Object-based plugin template with event hooks
 - `plugins/template-class.js` - Class-based plugin template with event hooks 
+
+# Plugin Error Handling
+
+MaxBot includes a robust error handling system for plugins. This helps ensure that a single plugin failure doesn't affect the entire bot.
+
+## Plugin Initialization Errors
+
+When a plugin fails to initialize:
+
+1. The plugin manager catches the error and marks the plugin as disabled
+2. The error details are logged and stored in the plugin's configuration
+3. The plugin manager continues initializing other plugins
+4. A timeout protection mechanism prevents hanging if a plugin's initialization doesn't complete
+5. An event `plugins:init:errors` is emitted with details of all failed plugins
+
+## Writing Robust Plugins
+
+To make your plugins more resilient:
+
+```javascript
+// Good practice for initialization
+init: function(bot, logger) {
+  try {
+    // Initialization code here
+    return true;
+  } catch (error) {
+    logger.error(`[${this.name}] Initialization failed: ${error.message}`);
+    throw error; // Rethrow to inform plugin manager about the failure
+  }
+}
+
+// Good practice for command execution
+async executeCommand(client, channel, context, commandText) {
+  try {
+    // Command logic here
+    return true;
+  } catch (error) {
+    this.logger.error(`[${this.name}] Command error: ${error.message}`);
+    return false; // Don't throw - just return false to indicate failure
+  }
+}
+```
+
+## Checking Plugin Error State
+
+You can check if a plugin is in an error state:
+
+```javascript
+const plugin = pluginManager.getPlugin('pluginName');
+if (plugin.config && plugin.config.errorState) {
+  console.log(`Plugin error: ${plugin.config.lastError}`);
+}
+``` 

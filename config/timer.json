@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "defaultInterval": 15,
+  "maxTimers": 5,
+  "minInterval": 5,
+  "maxInterval": 60
+}

@@ -13,9 +13,7 @@
     "wsPort": 8080
   },
   "plugins": {
-    "enabled": [
-      "libretranslate"
-    ],
+    "enabled": [],
     "settings": {
       "translator": {
         "apiKey": "",
@@ -33,6 +31,20 @@
         "translateAll": false,
         "defaultTargetLanguage": "en",
         "apiUrl": "https://libretranslate.com/translate"
+      },
+      "shoutout": {
+        "enabled": true,
+        "autoShoutout": {
+          "enabled": true,
+          "cooldownHours": 24,
+          "message": "🎮 Look who it is, @{username}! Check them out over over at https://twitch.tv/{username}!!! 👍"
+        },
+        "cooldownMinutes": 60,
+        "excludedUsers": [],
+        "messages": {
+          "streamer": "🎮 Check out @{username} over at https://twitch.tv/{username} - They're an awesome streamer!!! 👍",
+          "nonStreamer": "💖 Shoutout to @{username} - Thanks for being an awesome part of our community!!! 💖"
+        }
       }
     }
   },

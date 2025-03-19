@@ -63,26 +63,39 @@ const plugin = {
         
         this.logger.info(`[${this.name}] Plugin initializing...`);
         
-        // Load configuration (if needed)
-        this.loadConfig();
-        
-        // Set up commands
-        this.setupCommands();
-        
-        // Set up event listeners
-        this.setupEventListeners();
-        
-        this.logger.info(`[${this.name}] Plugin initialized successfully`);
-        return true;
+        try {
+            // Load configuration (if needed)
+            this.loadConfig();
+            
+            // Set up commands
+            this.setupCommands();
+            
+            // Set up event listeners
+            this.setupEventListeners();
+            
+            this.logger.info(`[${this.name}] Plugin initialized successfully`);
+            return true;
+        } catch (error) {
+            // Proper error handling during initialization
+            this.logger.error(`[${this.name}] Initialization failed: ${error.message}`);
+            // Rethrow the error to let the plugin manager know this plugin failed
+            throw error;
+        }
     },
     
-    // Load plugin configuration
+    // Load plugin configuration with error handling
     loadConfig: function() {
-        // Load the plugin's configuration
-        if (this.configManager) {
-            const config = this.configManager.loadPluginConfigWithoutSaving(this.name, this.config);
-            this.config = { ...this.config, ...config };
-            this.logger.info(`[${this.name}] Configuration loaded: ${JSON.stringify(this.config)}`);
+        try {
+            // Load the plugin's configuration
+            if (this.configManager) {
+                const config = this.configManager.loadPluginConfigWithoutSaving(this.name, this.config);
+                this.config = { ...this.config, ...config };
+                this.logger.info(`[${this.name}] Configuration loaded: ${JSON.stringify(this.config)}`);
+            }
+        } catch (error) {
+            this.logger.error(`[${this.name}] Error loading configuration: ${error.message}`);
+            // Don't throw here - use default config if loading fails
+            this.logger.info(`[${this.name}] Using default configuration`);
         }
     },
     
@@ -139,6 +152,9 @@ const plugin = {
     onTwitchMessage: function(data) {
         // Called for every Twitch message - be careful not to do too much here
         // this.logger.info(`[${this.name}] Message received: ${data.message}`);
+        
+        // Process incoming message (replaces the old handleMessage method)
+        this.processMessage(data.channel, data.tags, data.message, data.self);
     },
     
     onTwitchConnected: function(data) {
@@ -170,18 +186,15 @@ const plugin = {
         this.logger.info(`[${this.name}] Plugin disabled: ${data.name}`);
     },
     
-    // Optional methods
-    
-    // Called when a message is received (if registered with bot.onMessage)
-    handleMessage: function(channel, user, message, self) {
+    // Process incoming messages
+    processMessage: function(channel, tags, message, self) {
         // Skip messages from the bot itself
         if (self) return;
         
-        // Your message handling logic here
-        // For example, you could respond to specific keywords or patterns
-        if (message.toLowerCase().includes('hello')) {
-            // Uncomment the line below to respond to messages containing "hello"
-            // this.client.say(channel, `Hello, @${user.username}!`);
+        // Implement your message processing logic here
+        // For example, check if the message contains certain keywords
+        if (message.toLowerCase().includes('hello') && !message.startsWith('!')) {
+            this.client.say(channel, `Hello @${tags.username}!`);
         }
     },
     

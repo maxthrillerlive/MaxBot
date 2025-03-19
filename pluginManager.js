@@ -8,12 +8,17 @@ const fs = require('fs');
 const path = require('path');
 
 class PluginManager {
+  /**
+   * Constructor for PluginManager
+   * @param {Object} logger - Logger instance
+   * @param {Object} configManager - Configuration manager instance
+   */
   constructor(logger, configManager = null) {
     this.plugins = new Map();
-    this.logger = logger || console;
     this.pluginsDir = path.join(__dirname, 'plugins');
-    this.bot = null;
+    this.logger = logger;
     this.configManager = configManager;
+    this.bot = null;
     
     // Bind methods
     this.loadPlugins = this.loadPlugins.bind(this);
@@ -27,11 +32,15 @@ class PluginManager {
   }
   
   /**
-   * Initialize the plugin manager with a bot instance
+   * Set the bot instance
    * @param {Object} bot - The bot instance
    */
   init(bot) {
     this.bot = bot;
+    this.logger.info('[PluginManager] Initialized with bot instance');
+    
+    // Initialize all enabled plugins
+    this.initPlugins();
   }
   
   /**
@@ -58,6 +67,8 @@ class PluginManager {
     const pluginFiles = fs.readdirSync(this.pluginsDir)
       .filter(file => file.endsWith('.js'));
     
+    this.logger.info(`[PluginManager] Found plugin files: ${pluginFiles.join(', ')}`);
+    
     // Load each plugin
     const loadedPlugins = [];
     for (const file of pluginFiles) {
@@ -65,16 +76,29 @@ class PluginManager {
         const pluginPath = path.join(this.pluginsDir, file);
         
         // Clear require cache to ensure we get fresh plugin code
-        delete require.cache[require.resolve(pluginPath)];
-        
-        // Load the plugin
-        const plugin = require(pluginPath);
+        if (require.cache[require.resolve(pluginPath)]) {
+          this.logger.info(`[PluginManager] Clearing cache for plugin: ${file}`);
+          delete require.cache[require.resolve(pluginPath)];
+        }
         
         // Skip template plugins
         if (file === 'template.js' || file === 'template-class.js') {
           this.logger.info(`[PluginManager] Skipping template plugin: ${file}`);
           continue;
         }
+        
+        // Load the plugin
+        this.logger.info(`[PluginManager] Loading plugin file: ${file}`);
+        const plugin = require(pluginPath);
+        
+        // Log the raw plugin object to debug
+        this.logger.info(`[PluginManager] Loaded plugin object: ${JSON.stringify({
+          name: plugin.name,
+          version: plugin.version,
+          hasInit: typeof plugin.init === 'function',
+          hasCommands: Array.isArray(plugin.commands),
+          commandsLength: Array.isArray(plugin.commands) ? plugin.commands.length : 'N/A'
+        })}`);
         
         // Check if the plugin has the required properties and methods
         if (!plugin.name || typeof plugin.init !== 'function') {
@@ -89,36 +113,33 @@ class PluginManager {
         const authorInfo = plugin.author ? ` by ${plugin.author}` : '';
         this.logger.info(`[PluginManager] Loaded plugin: ${plugin.name} v${plugin.version || '1.0.0'}${authorInfo}`);
         
-        // Load plugin configuration if available
+        // Load the plugin's configuration
         if (this.configManager) {
-          // Load plugin-specific configuration without saving
-          const pluginConfig = this.configManager.loadPluginConfigWithoutSaving(plugin.name);
-          
-          // Ensure the plugin has a config object
+          // Create a default config object if it doesn't exist
           if (!plugin.config) {
-            plugin.config = {};
+            plugin.config = { enabled: true };
           }
           
-          // Merge the saved config with the plugin's default config
-          plugin.config = { ...plugin.config, ...pluginConfig };
+          // Load the plugin's configuration
+          const config = this.configManager.loadPluginConfig(plugin.name, plugin.config);
           
-          // Ensure the enabled property exists
-          if (plugin.config.enabled === undefined) {
-            plugin.config.enabled = false;
+          // If the plugin was previously in an error state, that might be fixed now
+          if (config.errorState) {
+            this.logger.info(`[PluginManager] Plugin ${plugin.name} was previously in error state: ${config.lastError}`);
+            // Clear the error state since we're reloading
+            config.errorState = false;
+            config.lastError = null;
+            this.configManager.savePluginConfig(plugin.name, config);
           }
-
-          // Check if the plugin should be enabled by default
-          const enabledPlugins = this.configManager.get('plugins.enabled', []);
-          if (enabledPlugins.includes(plugin.name) || plugin.config.enabled) {
-            plugin.config.enabled = true;
-          } else {
-            plugin.config.enabled = false;
-          }
+          
+          this.logger.info(`Loaded configuration for plugin ${plugin.name} from ${this.configManager.getPluginConfigPath(plugin.name)}`);
+        } else {
+          this.logger.info(`No configuration manager available, using default configuration for plugin ${plugin.name}`);
         }
         
         loadedPlugins.push(plugin.name);
       } catch (error) {
-        this.logger.error(`[PluginManager] Error loading plugin ${file}: ${error.message}`);
+        this.logger.error(`[PluginManager] Error loading plugin ${file}:`, error);
       }
     }
     
@@ -126,53 +147,240 @@ class PluginManager {
   }
   
   /**
-   * Initialize all loaded plugins
+   * Initialize plugins with the bot object
+   * @param {Object} bot - The bot object to pass to plugins
+   * @returns {Promise<void>} - Promise that resolves when initialization is complete
    */
-  initPlugins() {
-    this.logger.info('[PluginManager] Initializing plugins...');
-
-    if (!this.bot) {
-      this.logger.error('[PluginManager] Cannot initialize plugins: Bot not set');
-      return;
-    }
-
-    // Get all enabled plugins
-    const enabledPlugins = Array.from(this.plugins.values())
-      .filter(plugin => plugin.config && plugin.config.enabled);
-
-    if (enabledPlugins.length === 0) {
-      this.logger.info('[PluginManager] No enabled plugins to initialize');
+  async initPlugins(bot) {
+    // Safety check - ensure bot is valid and has client
+    if (!bot || !bot.client) {
+      this.logger.error('[PluginManager] Cannot initialize plugins: Invalid bot object or missing client property');
       return;
     }
     
-    // Initialize each enabled plugin
-    for (const plugin of enabledPlugins) {
+    // Check if we already initialized plugins with this bot object
+    if (this.bot === bot && this._initialized) {
+      this.logger.info('[PluginManager] Plugins are already initialized with this bot instance, skipping');
+      return;
+    }
+    
+    this.bot = bot;
+    this._initialized = true;
+    
+    if (this.plugins.size === 0) {
+      this.logger.warn('[PluginManager] No plugins to initialize');
+      return;
+    }
+    
+    this.logger.info(`[PluginManager] Initializing ${this.plugins.size} plugins`);
+    let initCount = 0;
+    let failedPlugins = [];
+    
+    // Get enabled plugins from config or use defaults
+    let enabledPlugins = this.configManager ? this.configManager.get('plugins.enabled', []) : [];
+    
+    // Log what plugins we have
+    this.logger.info(`[PluginManager] Loaded plugins: ${[...this.plugins.keys()].join(', ')}`);
+    this.logger.info(`[PluginManager] Enabled plugins from config: ${enabledPlugins.join(', ') || 'none'}`);
+    
+    for (const plugin of this.plugins.values()) {
       try {
-        // Initialize the plugin
-        plugin.init(this.bot, this.logger);
+        // Skip plugins that are already initialized
+        if (plugin._initialized) {
+          this.logger.info(`[PluginManager] Plugin ${plugin.name} is already initialized, skipping`);
+          initCount++; // Count as successfully initialized
+          continue;
+        }
         
-        // Register plugin commands if available
-        if (plugin.commands && Array.isArray(plugin.commands)) {
-          this.logger.info(`[PluginManager] Registering ${plugin.commands.length} commands from plugin ${plugin.name}`);
-          
-          for (const command of plugin.commands) {
-            if (command && command.name && command.execute) {
-              // Set default prefix if not specified
-              if (!command.config) {
-                command.config = {};
-              }
-              if (!command.config.prefix) {
-                command.config.prefix = '!';
-              }
+        // Log pre-init state
+        this.logger.info(`[PluginManager] Pre-init state of ${plugin.name}: commands = ${plugin.commands ? plugin.commands.length : 'undefined'}`);
+        
+        // Skip plugins that don't have an init method
+        if (typeof plugin.init !== 'function') {
+          this.logger.warn(`[PluginManager] Plugin ${plugin.name} does not have an init method, skipping`);
+          continue;
+        }
+        
+        this.logger.info(`[PluginManager] Initializing plugin: ${plugin.name}`);
+        
+        // Initialize the plugin with timeout protection
+        const initPromise = Promise.resolve().then(() => {
+          try {
+            // Pass the logger directly to the plugin
+            const result = plugin.init(bot, this.logger);
+            // Mark as initialized if successful
+            if (result) {
+              plugin._initialized = true;
             }
+            return result;
+          } catch (error) {
+            // Catch synchronous errors in init
+            throw new Error(`Synchronous error in plugin.init: ${error.message}`);
+          }
+        });
+        
+        // Add a timeout to prevent hanging during initialization
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Plugin initialization timed out (10s)'));
+          }, 10000); // 10 second timeout
+        });
+        
+        // Wait for initialization or timeout
+        await Promise.race([initPromise, timeoutPromise]);
+        
+        // Verify critical properties after initialization
+        if (!Array.isArray(plugin.commands)) {
+          this.logger.warn(`[PluginManager] Plugin ${plugin.name} does not have a commands array after initialization`);
+        } else if (plugin.commands.length === 0) {
+          this.logger.warn(`[PluginManager] Plugin ${plugin.name} has an empty commands array after initialization`);
+        } else {
+          this.logger.info(`[PluginManager] Plugin ${plugin.name} initialized with ${plugin.commands.length} commands: ${plugin.commands.map(c => c.name).join(', ')}`);
+        }
+        
+        // Enable the plugin if it's in the enabled list
+        if (enabledPlugins.includes(plugin.name)) {
+          // Use try-catch to prevent enable errors from affecting other plugins
+          try {
+            this.enablePlugin(plugin.name);
+          } catch (enableError) {
+            this.logger.error(`[PluginManager] Error enabling plugin ${plugin.name} after initialization: ${enableError.message}`);
+            // Add to failed plugins but still count it as initialized
+            failedPlugins.push({
+              name: plugin.name,
+              phase: 'enable',
+              error: enableError.message
+            });
           }
         }
+        
+        initCount++;
+        
       } catch (error) {
+        // Handle initialization errors
         this.logger.error(`[PluginManager] Error initializing plugin ${plugin.name}: ${error.message}`);
+        
+        // Clear initialized flag to allow retry later
+        if (plugin._initialized) {
+          plugin._initialized = false;
+        }
+        
+        // Track the failed plugin
+        failedPlugins.push({
+          name: plugin.name,
+          phase: 'initialization',
+          error: error.message
+        });
+        
+        // Mark the plugin as disabled due to error
+        try {
+          if (plugin.config) {
+            plugin.config.enabled = false;
+            plugin.config.errorState = true;
+            plugin.config.lastError = error.message;
+          } else {
+            plugin.config = {
+              enabled: false,
+              errorState: true,
+              lastError: error.message
+            };
+          }
+          
+          // Update the enabled plugins list to remove this plugin
+          if (this.configManager) {
+            const enabledPluginsList = this.configManager.get('plugins.enabled', []);
+            const index = enabledPluginsList.indexOf(plugin.name);
+            if (index !== -1) {
+              enabledPluginsList.splice(index, 1);
+              this.configManager.set('plugins.enabled', enabledPluginsList);
+            }
+          }
+        } catch (configError) {
+          // If we can't even update the config, just log and continue
+          this.logger.error(`[PluginManager] Failed to update config after plugin error: ${configError.message}`);
+        }
       }
     }
-
-    this.logger.info(`[PluginManager] Initialized ${enabledPlugins.length} plugins: ${enabledPlugins.map(p => p.name).join(', ')}`);
+    
+    // Log initialization summary
+    const successCount = initCount - failedPlugins.length;
+    if (failedPlugins.length > 0) {
+      this.logger.warn(`[PluginManager] Initialization complete: ${successCount} successful, ${failedPlugins.length} failed`);
+      
+      // Log details about failed plugins
+      failedPlugins.forEach(failed => {
+        this.logger.warn(`[PluginManager] Failed plugin: ${failed.name} (${failed.phase}) - ${failed.error}`);
+      });
+      
+      // Emit an event about failed plugins for monitoring
+      if (this.bot && this.bot.events) {
+        this.bot.events.emit('plugins:init:errors', { failedPlugins });
+      }
+    } else {
+      this.logger.info(`[PluginManager] Initialized ${initCount} plugins successfully`);
+    }
+    
+    // Listen for plugin API channel info requests
+    this.setupEventListeners();
+  }
+  
+  /**
+   * Set up event listeners for the plugin manager
+   */
+  setupEventListeners() {
+    // Only set up event listeners if we have a bot object with events
+    if (!this.bot || !this.bot.events) {
+      return;
+    }
+    
+    // Register for any plugin-related events that need central handling
+    this.bot.events.on('plugin:info:request', this.handlePluginInfoRequest.bind(this));
+  }
+  
+  /**
+   * Handle plugin info requests
+   * @param {Object} data - The request data
+   */
+  handlePluginInfoRequest(data) {
+    try {
+      // Get the plugin info
+      const pluginInfo = this.getPluginInfo(data.pluginName);
+      
+      // Emit the response event
+      this.bot.events.emit('plugin:info:response', {
+        requestId: data.requestId,
+        pluginInfo,
+        success: !!pluginInfo
+      });
+    } catch (error) {
+      this.logger.error(`[PluginManager] Error handling plugin info request: ${error.message}`);
+      
+      // Emit error response
+      this.bot.events.emit('plugin:info:response', {
+        requestId: data.requestId,
+        error: error.message,
+        success: false
+      });
+    }
+  }
+  
+  /**
+   * Get information about a plugin
+   * @param {string} pluginName - The name of the plugin
+   * @returns {Object|null} - The plugin information or null if not found
+   */
+  getPluginInfo(pluginName) {
+    const plugin = this.plugins.get(pluginName);
+    if (!plugin) {
+      return null;
+    }
+    
+    return {
+      name: plugin.name,
+      description: plugin.description || 'No description provided',
+      enabled: plugin.config && plugin.config.enabled,
+      commands: this.getPluginCommands(plugin)
+    };
   }
   
   /**
@@ -369,23 +577,26 @@ class PluginManager {
   }
   
   /**
-   * Handle a command
-   * @param {Object} client - The Twitch client
-   * @param {string} target - The target channel
-   * @param {Object} context - The user context
-   * @param {string} commandText - The command text
-   * @returns {Promise<boolean>} - Whether the command was handled
+   * Handle a command from a user
+   * @param {Object} client - Twitch client
+   * @param {string} target - Target channel
+   * @param {Object} context - User context (tags)
+   * @param {string} commandText - Command text
+   * @returns {Promise<boolean>} - Promise that resolves to true if command was handled, false otherwise
    */
   async handleCommand(client, target, context, commandText) {
+    // Extract command name and parameters
+    const parts = commandText.trim().split(' ');
+    const commandName = parts[0].slice(1).toLowerCase(); // Remove ! and convert to lowercase
+    
+    // Skip built-in commands that should be handled by the main bot
+    if (commandName === 'plugin') {
+      this.logger.info(`[PluginManager] Ignoring !plugin command to let built-in handler handle it`);
+      return false;
+    }
+    
     try {
       this.logger.info('[PluginManager] Handling command:', commandText);
-      
-      // Extract the command name and prefix
-      const parts = commandText.trim().split(' ');
-      const prefix = parts[0].charAt(0);
-      const commandName = parts[0].substring(1).toLowerCase();
-      
-      this.logger.info(`[PluginManager] Looking for command: ${commandName} with prefix: ${prefix}`);
       
       // Find the command in enabled plugins
       for (const plugin of this.plugins.values()) {
@@ -418,6 +629,7 @@ class PluginManager {
         }
         
         // Check if prefix matches (allow both ! and ? for all commands)
+        const prefix = parts[0].charAt(0);
         if (prefix !== '!' && prefix !== '?') {
           this.logger.info(`[PluginManager] Invalid prefix for command ${commandName}. Expected: ! or ?, got: ${prefix}`);
           return false;
@@ -861,6 +1073,133 @@ class PluginManager {
     } catch (error) {
       this.logger.error(`[PluginManager] Error finding plugin file for ${pluginName}:`, error);
       return null;
+    }
+  }
+  
+  /**
+   * Get all plugins that are in error state
+   * @returns {Array} - Array of objects with plugin name and error information
+   */
+  getPluginsInErrorState() {
+    const errorPlugins = [];
+    
+    for (const [name, plugin] of this.plugins.entries()) {
+      if (plugin.config && plugin.config.errorState) {
+        errorPlugins.push({
+          name,
+          error: plugin.config.lastError || 'Unknown error',
+          plugin
+        });
+      }
+    }
+    
+    return errorPlugins;
+  }
+  
+  /**
+   * Attempt to recover a plugin from error state
+   * @param {string} pluginName - Name of the plugin to recover
+   * @returns {boolean} - Whether recovery was successful
+   */
+  recoverPlugin(pluginName) {
+    const plugin = this.plugins.get(pluginName);
+    
+    if (!plugin) {
+      this.logger.warn(`[PluginManager] Cannot recover plugin ${pluginName}: Plugin not found`);
+      return false;
+    }
+    
+    // Check if plugin is in error state
+    if (!plugin.config || !plugin.config.errorState) {
+      this.logger.warn(`[PluginManager] Plugin ${pluginName} is not in error state`);
+      return false;
+    }
+    
+    try {
+      this.logger.info(`[PluginManager] Attempting to recover plugin ${pluginName} from error state`);
+      
+      // Clear error state
+      plugin.config.errorState = false;
+      plugin.config.lastError = null;
+      
+      // Attempt to reload the plugin
+      const reloadSuccess = this.reloadPlugin(pluginName);
+      
+      if (reloadSuccess) {
+        this.logger.info(`[PluginManager] Successfully recovered plugin ${pluginName}`);
+        
+        // Emit recovery event
+        if (this.bot && this.bot.events) {
+          this.bot.events.emit('plugin:recovered', { 
+            name: pluginName,
+            plugin
+          });
+        }
+        
+        return true;
+      } else {
+        this.logger.error(`[PluginManager] Failed to recover plugin ${pluginName}`);
+        return false;
+      }
+    } catch (error) {
+      this.logger.error(`[PluginManager] Error recovering plugin ${pluginName}: ${error.message}`);
+      return false;
+    }
+  }
+  
+  /**
+   * Debug function to log the state of all plugins and their commands
+   */
+  logPluginStatus() {
+    this.logger.info('===== PLUGIN STATUS DEBUG =====');
+    this.logger.info(`Total plugins loaded: ${this.plugins.size}`);
+    
+    for (const [name, plugin] of this.plugins.entries()) {
+      this.logger.info(`Plugin: ${name}`);
+      this.logger.info(`- Enabled: ${plugin.config?.enabled}`);
+      this.logger.info(`- Initialized: ${plugin._initialized}`);
+      this.logger.info(`- Error state: ${plugin.config?.errorState || false}`);
+      
+      if (plugin.commands) {
+        this.logger.info(`- Commands (${plugin.commands.length}):`);
+        for (const cmd of plugin.commands) {
+          this.logger.info(`  - ${cmd.name} (enabled: ${cmd.config?.enabled !== false})`);
+          if (cmd.config?.aliases && cmd.config.aliases.length > 0) {
+            this.logger.info(`    Aliases: ${cmd.config.aliases.join(', ')}`);
+          }
+        }
+      } else {
+        this.logger.info('- No commands array');
+      }
+    }
+    
+    this.logger.info('================================');
+  }
+  
+  /**
+   * Debug function to explicitly dump the hello plugin state
+   */
+  debugHelloPlugin() {
+    const helloPlugin = this.getPlugin('hello');
+    if (!helloPlugin) {
+      this.logger.warn('[DEBUG] Hello plugin not found!');
+      return;
+    }
+    
+    this.logger.info('[DEBUG] Hello plugin details:');
+    this.logger.info(`- Plugin object: ${typeof helloPlugin}`);
+    this.logger.info(`- Enabled: ${helloPlugin.config?.enabled}`);
+    this.logger.info(`- Initialized: ${helloPlugin._initialized}`);
+    
+    if (helloPlugin.commands) {
+      this.logger.info(`- Commands array exists with ${helloPlugin.commands.length} commands`);
+      for (const cmd of helloPlugin.commands) {
+        this.logger.info(`  - Command: ${cmd.name}`);
+        this.logger.info(`    Execute function: ${typeof cmd.execute}`);
+        this.logger.info(`    Plugin reference: ${typeof cmd.plugin}`);
+      }
+    } else {
+      this.logger.warn('- No commands array exists!');
     }
   }
 }

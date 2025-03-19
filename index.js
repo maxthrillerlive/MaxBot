@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
 const { spawn } = require('child_process');
+const fetch = require('node-fetch'); // Import fetch for Twitch API requests
 const twitchAuth = require('./twitch-auth'); // Import the new Twitch auth module
 const PluginManager = require('./pluginManager'); // Import the plugin manager
 const ConfigManager = require('./configManager'); // Import the configuration manager
@@ -81,7 +82,7 @@ try {
                 try {
                     // Send a ping frame (not a message)
                     ws.ping();
-                } catch (error) {
+} catch (error) {
                     console.error('Error sending ping:', error);
                     clearInterval(pingInterval);
                 }
@@ -251,6 +252,33 @@ if (!process.env.CHANNEL_NAME) {
 // Initialize the Twitch client using our new module
 const client = twitchAuth.initializeTwitchClient();
 
+// Direct plugin command handler - separate from the main message handler
+client.on('message', async (channel, context, message, self) => {
+    // Skip messages from the bot itself
+    if (self) return;
+    
+    // Only process !plugin commands
+    if (message.toLowerCase().startsWith('!plugin')) {
+        logInfo(`Direct plugin handler: ${message}`);
+        
+        // Extract command parameters
+        const params = message.trim().split(' ').slice(1);
+        
+        // Call the plugin command handler
+        const result = await handlePluginCommand(client, channel, context, params);
+        
+        // Emit command completion event
+        botObject.events.emit('command:after', {
+            channel,
+            tags: context,
+            command: 'plugin',
+            params,
+            message,
+            success: result !== false
+        });
+    }
+});
+
 // Direct message handler for Twitch chat
 client.on('message', async (channel, tags, message, self) => {
     // Skip messages from the bot itself
@@ -362,12 +390,153 @@ const botObject = {
     messageHandlers: [],
     events: new EventEmitter(), // Add event emitter for hooks
     onMessage: function(handler) {
+        // Legacy handler - add to message handlers array
         this.messageHandlers.push(handler);
+        
+        // Log a deprecation warning
+        logger.warn('onMessage is deprecated. Please use events.on("twitch:message") instead.');
+        
+        // Also register the handler with the event system for backward compatibility
+        this.events.on('twitch:message', (data) => {
+            try {
+                handler(data.channel, data.tags, data.message, data.self);
+            } catch (error) {
+                logger.error('Error in message handler:', error);
+            }
+        });
     }
 };
 
-// Initialize plugin manager
-pluginManager.init(botObject);
+// Load plugins
+pluginManager.loadPlugins();
+
+// Set up event handlers for the Twitch client
+client.on('connected', async (address, port) => {
+  logger.info(`Connected to Twitch at ${address}:${port}`);
+  
+  // Create a properly configured bot object
+  const fullBotObject = {
+    ...botObject,
+    client: client,  // Ensure the client is properly assigned
+    pluginManager: pluginManager,
+    logger: logger,
+    configManager: configManager
+  };
+  
+  // Initialize plugins with the bot object - now async
+  try {
+    await pluginManager.initPlugins(fullBotObject);
+    logger.info('Plugin initialization complete');
+    
+    // Debug plugin status after initialization
+    pluginManager.logPluginStatus();
+    pluginManager.debugHelloPlugin();
+    
+    // Manually test the hello command (for debugging only)
+    const helloPlugin = pluginManager.getPlugin('hello');
+    if (helloPlugin) {
+      logger.info('Found hello plugin, checking commands...');
+      if (helloPlugin.commands && helloPlugin.commands.length > 0) {
+        const helloCommand = helloPlugin.commands.find(cmd => cmd.name === 'hello');
+        if (helloCommand) {
+          logger.info('Found hello command, executing...');
+          try {
+            // Try executing with the plugin context for additional debug info
+            const result = await helloCommand.execute.call(
+              helloCommand, 
+              client, 
+              '#test', 
+              { username: 'system_test', badges: { broadcaster: '1' } },
+              '!hello'
+            );
+            logger.info(`Hello command test result: ${result}`);
+    } catch (error) {
+            logger.error('Error testing hello command:', error);
+          }
+        } else {
+          logger.warn('Hello command not found in hello plugin');
+        }
+      } else {
+        logger.warn('Hello plugin has no commands');
+      }
+    } else {
+      logger.warn('Hello plugin not found');
+    }
+  } catch (error) {
+    logger.error(`Error during plugin initialization: ${error.message}`);
+  }
+  
+  // Emit connected event for plugins
+  botObject.events.emit('twitch:connected', { address, port });
+});
+
+// Successfully joined channel
+client.on('join', (channel, username, self) => {
+  // Only handle events for our bot joining
+  if (self) {
+    const normalizedChannel = channel.toLowerCase();
+    const targetChannel = '#' + process.env.CHANNEL_NAME.toLowerCase();
+    
+    logger.info(`Successfully joined channel ${channel}`);
+    
+    // Check if this is our target channel
+    if (normalizedChannel === targetChannel) {
+      logger.info(`Successfully joined channel #${process.env.CHANNEL_NAME}`);
+      logger.info(`Bot connected and joined channel successfully.`);
+      
+      // Just emit the join event to notify plugins
+      if (botObject && botObject.events) {
+        botObject.events.emit('twitch:join', { channel, username, self });
+      }
+    }
+  }
+});
+
+// Register onMessageHandler as the primary message handler
+client.on('message', onMessageHandler);
+
+// Emit events for various Twitch actions
+client.on('subscription', (channel, username, method, message, userstate) => {
+    botObject.events.emit('twitch:subscription', { 
+        channel, username, method, message, userstate 
+    });
+});
+
+client.on('resub', (channel, username, months, message, userstate, methods) => {
+    botObject.events.emit('twitch:resub', { 
+        channel, username, months, message, userstate, methods 
+    });
+});
+
+client.on('subgift', (channel, username, streakMonths, recipient, methods, userstate) => {
+    botObject.events.emit('twitch:subgift', { 
+        channel, username, streakMonths, recipient, methods, userstate 
+    });
+});
+
+client.on('cheer', (channel, userstate, message) => {
+    botObject.events.emit('twitch:cheer', { 
+        channel, userstate, message 
+    });
+});
+
+client.on('raided', (channel, username, viewers) => {
+    botObject.events.emit('twitch:raid', { 
+        channel, username, viewers 
+    });
+});
+
+client.on('part', (channel, username, self) => {
+    if (self) {
+        logger.info(`Left channel ${channel}`);
+        botObject.events.emit('twitch:part', { channel, username, self });
+    }
+});
+
+client.on('disconnected', (reason) => {
+    logger.warn(`Disconnected from Twitch: ${reason}`);
+    botObject.events.emit('twitch:disconnected', { reason });
+});
 
 // After creating the client but before using it
 const originalSay = client.say;
@@ -410,7 +579,26 @@ twitchAuth.connectAndWaitForJoin()
         
         // Now load and initialize plugins
         pluginManager.loadPlugins();
-        pluginManager.initPlugins();
+        
+        // Create full bot object
+        const fullBotObject = {
+            ...botObject,
+            client: client,
+            pluginManager: pluginManager,
+            logger: logger,
+            configManager: configManager
+        };
+        
+        // Initialize with the proper bot object
+        pluginManager.initPlugins(fullBotObject)
+            .then(() => {
+                logger.info('Plugin initialization complete');
+                pluginManager.logPluginStatus();
+                pluginManager.debugHelloPlugin();
+            })
+            .catch(error => {
+                logger.error(`Error during plugin initialization: ${error.message}`);
+            });
         
         // Start periodic connection checking
         twitchAuth.startPeriodicConnectionCheck(60000); // Check every minute
@@ -460,7 +648,7 @@ function addToMessageCache(context, commandText) {
     return true;
 }
 
-// Called every time a message is received
+// Update the onMessageHandler to emit events and handle legacy handlers
 async function onMessageHandler(target, context, msg, self) {
     // Skip messages from the bot itself
     if (self) return;
@@ -480,11 +668,33 @@ async function onMessageHandler(target, context, msg, self) {
             return;
         }
         
-        logInfo('DIRECT HANDLER: Processing command: ' + msg);
-        
-        // Extract command name
+        // Extract command name and params
         const commandName = msg.trim().split(' ')[0].substring(1).toLowerCase();
         const params = msg.trim().split(' ').slice(1);
+        
+        logger.info(`Processing command '${commandName}' with params: ${params.join(', ')}`);
+        
+        // DIRECT HANDLER FOR HELLO - This bypasses all plugin systems
+        if (commandName === 'hello' || commandName === 'hi' || commandName === 'hey') {
+            logger.info(`DIRECT HANDLER: Executing hello command directly`);
+            try {
+                await client.say(target, `@${context.username} Hello there! (direct response)`);
+                
+                // Emit command completion event
+                botObject.events.emit('command:after', { 
+                    channel: target, 
+                    tags: context, 
+                    command: commandName, 
+                    params,
+                    message: msg,
+                    success: true
+                });
+                
+                return; // Stop further processing
+            } catch (error) {
+                logger.error(`Error in direct hello handler: ${error.message}`);
+            }
+        }
         
         // Emit command event before processing
         botObject.events.emit('command:before', { 
@@ -495,8 +705,8 @@ async function onMessageHandler(target, context, msg, self) {
             message: msg
         });
         
-        // Check if it's a help command first, since that's built-in
-        if (msg.toLowerCase().startsWith('!help') || msg.toLowerCase().startsWith('?help')) {
+        // Handle help command
+        if (commandName === 'help') {
             const result = await handleHelpCommand(client, target, context, params);
             
             // Emit command completion event
@@ -509,11 +719,11 @@ async function onMessageHandler(target, context, msg, self) {
                 success: result
             });
             
-            return;
-        }
-        
-        // Check if it's a plugin command, since that's built-in too
-        if (msg.toLowerCase().startsWith('!plugin') || msg.toLowerCase().startsWith('?plugin')) {
+        return;
+    }
+
+        // Handle plugin command
+        if (commandName === 'plugin') {
             const result = await handlePluginCommand(client, target, context, params);
             
             // Emit command completion event
@@ -529,8 +739,178 @@ async function onMessageHandler(target, context, msg, self) {
             return;
         }
         
-        // Use the plugin manager to handle other commands
+        // Handle debug command
+        if (commandName === 'debug') {
+            // Only moderators can use debug commands
+            const isMod = context.mod || context.badges?.broadcaster === '1' || 
+                      context.username.toLowerCase() === process.env.CHANNEL_NAME.toLowerCase();
+            
+            if (!isMod) {
+                await client.say(target, `@${context.username} You need to be a moderator to use this command.`);
+                
+                // Emit command completion event
+                botObject.events.emit('command:after', { 
+                    channel: target, 
+                    tags: context, 
+                    command: 'debug', 
+                    params,
+                    message: msg,
+                    success: false
+                });
+                
+                return;
+            }
+            
+            let result = true;
+            const subCommand = params[0]?.toLowerCase();
+            
+            if (subCommand === 'plugins') {
+                const plugins = pluginManager.getAllPlugins();
+                if (!plugins || plugins.length === 0) {
+                    await client.say(target, `@${context.username} No plugins are currently loaded.`);
+                    return;
+                }
+                
+                const pluginInfo = plugins.map(p => {
+                    const commandCount = p.commands ? p.commands.length : 0;
+                    const enabledStatus = p.config && p.config.enabled ? 'enabled' : 'disabled';
+                    const errorStatus = p.config && p.config.errorState ? ' (ERROR)' : '';
+                    return `${p.name}: ${enabledStatus}${errorStatus}, ${commandCount} commands`;
+                }).join(', ');
+                
+                await client.say(target, `@${context.username} Loaded plugins: ${pluginInfo}`);
+            } else if (subCommand === 'hello') {
+                // Specific debugging for hello plugin
+                const helloPlugin = pluginManager.getPlugin('hello');
+                if (helloPlugin) {
+                    const status = helloPlugin.config && helloPlugin.config.enabled ? 'enabled' : 'disabled';
+                    const commandCount = helloPlugin.commands ? helloPlugin.commands.length : 0;
+                    const commandNames = helloPlugin.commands ? helloPlugin.commands.map(c => c.name).join(', ') : 'none';
+                    const errorState = helloPlugin.config && helloPlugin.config.errorState ? ' (ERROR: ' + helloPlugin.config.lastError + ')' : '';
+                    
+                    // Enable the plugin if it's not enabled
+                    if (!helloPlugin.config || !helloPlugin.config.enabled) {
+                        pluginManager.enablePlugin('hello');
+                        await client.say(target, `@${context.username} Hello plugin was disabled, now enabled.`);
+                    }
+                    
+                    await client.say(target, `@${context.username} Hello plugin: ${status}${errorState}, commands: ${commandCount} (${commandNames})`);
+                    
+                    // Test executing the hello command manually
+                    if (commandCount > 0) {
+                        const helloCommand = helloPlugin.commands.find(cmd => cmd.name === 'hello');
+                        if (helloCommand) {
+                            try {
+                                const result = await helloCommand.execute.call(helloCommand, client, target, context, '!hello');
+                                await client.say(target, `@${context.username} Manual hello command execution result: ${result}`);
+                            } catch (error) {
+                                logger.error('Error executing hello command manually:', error);
+                                await client.say(target, `@${context.username} Error executing hello command manually: ${error.message}`);
+                            }
+                        }
+                    }
+                } else {
+                    await client.say(target, `@${context.username} Hello plugin not found!`);
+                }
+            } else if (subCommand === 'errors') {
+                const errorPlugins = pluginManager.getPluginsInErrorState();
+                
+                if (errorPlugins.length === 0) {
+                    await client.say(target, `@${context.username} No plugins are currently in error state.`);
+                } else {
+                    const errorList = errorPlugins.map(p => `${p.name} (${p.error})`).join(', ');
+                    await client.say(target, `@${context.username} Plugins in error state: ${errorList}`);
+                }
+            } else if (subCommand === 'reload') {
+                // Attempt to reload all plugins
+                logger.info(`Manually reloading all plugins through !debug reload command`);
+                try {
+                    // Reset the initialized flag if needed
+                    pluginManager._initialized = false;
+                    
+                    // Recreate the full bot object
+                    const fullBotObject = {
+                        ...botObject,
+                        client: client,
+                        pluginManager: pluginManager,
+                        logger: logger,
+                        configManager: configManager
+                    };
+                    
+                    // Reload the plugin files
+                    pluginManager.loadPlugins();
+                    pluginManager.logPluginStatus();
+                    
+                    // Reinitialize the plugins
+                    await pluginManager.initPlugins(fullBotObject);
+                    pluginManager.debugHelloPlugin();
+                    
+                    await client.say(target, `@${context.username} Reloaded and reinitialized all plugins`);
+    } catch (error) {
+                    logger.error(`Error reloading plugins:`, error);
+                    await client.say(target, `@${context.username} Error reloading plugins: ${error.message}`);
+                }
+            } else if (subCommand === 'fixhello') {
+                // Special command to fix hello plugin issues
+                logger.info(`Attempting to fix hello plugin...`);
+                
+                try {
+                    // Get the hello plugin
+                    const helloPlugin = pluginManager.getPlugin('hello');
+                    
+                    if (!helloPlugin) {
+                        await client.say(target, `@${context.username} Hello plugin not found!`);
+                        return;
+                    }
+                    
+                    // Reset its state
+                    helloPlugin._initialized = false;
+                    
+                    // Recreate the bot object
+                    const fullBotObject = {
+                        ...botObject,
+                        client: client,
+                        pluginManager: pluginManager,
+                        logger: logger,
+                        configManager: configManager
+                    };
+                    
+                    // Initialize just the hello plugin
+                    helloPlugin.init(fullBotObject, logger);
+                    
+                    // Enable it
+                    helloPlugin.config.enabled = true;
+                    
+                    // Log its state
+                    pluginManager.debugHelloPlugin();
+                    
+                    await client.say(target, `@${context.username} Hello plugin has been reset and reinitialized`);
+                } catch (error) {
+                    logger.error(`Error fixing hello plugin:`, error);
+                    await client.say(target, `@${context.username} Error fixing hello plugin: ${error.message}`);
+                }
+            } else {
+                await client.say(target, `@${context.username} Debug commands: !debug plugins, !debug hello, !debug errors, !debug reload, !debug fixhello`);
+                result = false;
+            }
+            
+            // Emit command completion event
+            botObject.events.emit('command:after', { 
+                channel: target, 
+                tags: context, 
+                command: 'debug', 
+                params,
+                message: msg,
+                success: result
+            });
+            
+            return;
+        }
+        
+        // If we reach here, it's not a built-in command, so try plugins
+        logger.info(`Attempting to handle command ${commandName} via plugin manager`);
         const result = await pluginManager.handleCommand(client, target, context, msg);
+        logger.info(`Plugin manager result for ${commandName}: ${result}`);
         
         // Emit command completion event
         botObject.events.emit('command:after', { 
@@ -681,7 +1061,7 @@ async function handleRestart() {
                 setTimeout(() => {
                     process.exit(0);
                 }, 1000);
-            } catch (error) {
+    } catch (error) {
                 log('ERROR: Error in restart script: ' + error.message);
                 process.exit(1);
             }
@@ -838,9 +1218,7 @@ function checkActiveTwitchConnections() {
                 console.log(`Received message during connection check: ${message} (self: ${self})`);
                 client.removeListener('notice', noticeHandler);
                 client.removeListener('error', errorHandler);
-                client.removeListener('message', messageHandler);
-                resolve(true);
-            };
+client.on('message', messageHandler);
             
             // Add the temporary handlers
             client.on('notice', noticeHandler);
@@ -928,11 +1306,7 @@ const connectionCheckInterval = setInterval(() => {
 
     // Use async/await pattern with error handling
     (async () => {
-        try {
-            await checkTwitchConnection();
-        } catch (error) {
-            console.error('Error during periodic connection check:', error);
-        }
+        await checkTwitchConnection();
     })();
 }, 60000); // Check every minute
 */
@@ -1579,19 +1953,107 @@ async function shutdown(signal) {
 
 // Add the help command handlers after the existing message handler
 
-// Help command handler
+// Handle help command
 async function handleHelpCommand(client, channel, context, params) {
   try {
+    logger.info(`[Help] Processing help command with params: ${JSON.stringify(params)}`);
+    
+    // If "mod" parameter is provided, show mod-only commands
+    if (params.length > 0 && params[0].toLowerCase() === 'mod') {
+      logger.info(`[Help] Showing mod-only commands list`);
+      const result = await listModCommands(client, channel, context);
+      logger.info(`[Help] Result of listModCommands: ${result}`);
+      return result;
+    }
+    
     // If a specific command is requested, show help for that command
     if (params.length > 0) {
       const commandName = params[0].toLowerCase();
-      return await showCommandHelp(client, channel, context, commandName);
+      logger.info(`[Help] Showing help for specific command: ${commandName}`);
+      const result = await showCommandHelp(client, channel, context, commandName);
+      logger.info(`[Help] Result of showCommandHelp: ${result}`);
+      return result; // Ensure we're returning the result
     }
     
     // Otherwise, show a list of all commands
-    return await listCommands(client, channel, context);
+    logger.info(`[Help] Showing list of all commands`);
+    const result = await listCommands(client, channel, context);
+    logger.info(`[Help] Result of listCommands: ${result}`);
+    return result; // Ensure we're returning the result
   } catch (error) {
     logger.error(`Error in help command:`, error);
+    await client.say(channel, `@${context.username} Sorry, there was an error processing the help command.`);
+    return false;
+  }
+}
+
+// List all moderator-only commands
+async function listModCommands(client, channel, context) {
+  try {
+    // Check if user is a mod - only mods should see mod commands
+    const isMod = context.mod || context.badges?.broadcaster === '1' || 
+                 context.username.toLowerCase() === process.env.CHANNEL_NAME.toLowerCase();
+    
+    if (!isMod) {
+      await client.say(channel, `@${context.username} You need to be a moderator to view mod-only commands.`);
+      return false;
+    }
+    
+    // Get all commands from the plugin manager
+    const commands = pluginManager.listCommands();
+    
+    // Filter for mod-only commands
+    const modCommands = commands.filter(cmd => cmd.config && cmd.config.modOnly === true);
+    
+    // Group by plugin
+    const commandsByPlugin = {};
+    
+    // Add built-in mod commands
+    commandsByPlugin['system'] = ['plugin', 'debug', 'reload'];
+    
+    // Group plugin mod commands
+    for (const command of modCommands) {
+      const pluginName = command.pluginName || 'unknown';
+      if (!commandsByPlugin[pluginName]) {
+        commandsByPlugin[pluginName] = [];
+      }
+      commandsByPlugin[pluginName].push(command.name);
+    }
+    
+    // Build the message
+    let message = `@${context.username} Moderator commands:\n`;
+    
+    // Add each plugin's commands to the message
+    const pluginNames = Object.keys(commandsByPlugin).sort();
+    
+    for (let i = 0; i < pluginNames.length; i++) {
+      // Skip plugins with no commands
+      if (commandsByPlugin[pluginNames[i]].length === 0) {
+        continue;
+      }
+      
+      const pluginName = pluginNames[i];
+      const pluginCommands = commandsByPlugin[pluginName].sort();
+      
+      // Capitalize the first letter of the plugin name
+      const displayName = pluginName.charAt(0).toUpperCase() + pluginName.slice(1);
+      
+      // Add plugin name and its commands
+      message += `${displayName}: ${pluginCommands.map(cmd => `!${cmd}`).join(', ')}`;
+      
+      // Add a newline if not the last plugin
+      if (i < pluginNames.length - 1) {
+        message += '\n';
+      }
+    }
+    
+    // Send the message
+    await client.say(channel, message);
+    logger.info(`[Help] Displayed mod command list to ${context.username}`);
+    return true;
+  } catch (error) {
+    logger.error(`Error listing mod commands:`, error);
+    await client.say(channel, `@${context.username} Error listing mod commands.`);
     return false;
   }
 }
@@ -1602,26 +2064,48 @@ async function listCommands(client, channel, context) {
     // Get all commands from the plugin manager
     const commands = pluginManager.listCommands();
     
+    if (!commands || commands.length === 0) {
+      await client.say(channel, `@${context.username} No commands are currently available.`);
+      logger.warn(`[Help] No commands returned from plugin manager`);
+      return false;
+    }
+    
     // Group commands by plugin
     const commandsByPlugin = {};
+    
+    // Add built-in commands
+    commandsByPlugin['system'] = ['help', 'plugin', 'debug'];
+    
+    // Group plugin commands
     for (const command of commands) {
-      const pluginName = command.pluginName || 'core';
+      // Skip commands that aren't enabled
+      if (command.config && command.config.enabled === false) {
+        continue;
+      }
       
+      const pluginName = command.pluginName || 'unknown';
       if (!commandsByPlugin[pluginName]) {
         commandsByPlugin[pluginName] = [];
       }
-      
       commandsByPlugin[pluginName].push(command.name);
     }
     
     // Add the built-in help command
-    if (!commandsByPlugin['core']) {
-      commandsByPlugin['core'] = [];
+    if (!commandsByPlugin['Core']) {
+      commandsByPlugin['Core'] = [];
     }
-    commandsByPlugin['core'].push('help');
+    
+    if (!commandsByPlugin['Core'].includes('help')) {
+      commandsByPlugin['Core'].push('help');
+    }
+    
+    // Add plugin command if not included
+    if (!commandsByPlugin['Core'].includes('plugin')) {
+      commandsByPlugin['Core'].push('plugin');
+    }
     
     // Build the message
-    let message = `@${context.username} Available commands: `;
+    let message = `@${context.username} Available commands:\n`;
     
     // Add commands from each plugin
     const pluginNames = Object.keys(commandsByPlugin).sort();
@@ -1629,18 +2113,24 @@ async function listCommands(client, channel, context) {
       const pluginName = pluginNames[i];
       const pluginCommands = commandsByPlugin[pluginName].sort();
       
-      message += `${pluginCommands.map(cmd => `!${cmd}`).join(', ')}`;
+      // Capitalize the first letter of the plugin name
+      const displayName = pluginName.charAt(0).toUpperCase() + pluginName.slice(1);
       
+      // Add plugin name and its commands
+      message += `${displayName}: ${pluginCommands.map(cmd => `!${cmd}`).join(', ')}`;
+      
+      // Add a newline if not the last plugin
       if (i < pluginNames.length - 1) {
-        message += ', ';
+        message += '\n';
       }
     }
     
     // Add help text
-    message += '. Use !help [command] for more information on a specific command.';
+    message += '\nUse !help [command] for more information on a specific command.';
     
     // Send the message
     await client.say(channel, message);
+    logger.info(`[Help] Displayed command list to ${context.username}`);
     return true;
   } catch (error) {
     logger.error(`Error listing commands:`, error);
@@ -1655,6 +2145,24 @@ async function showCommandHelp(client, channel, context, commandName) {
     // Handle built-in help command
     if (commandName === 'help') {
       await client.say(channel, `@${context.username} Help for !help: List available commands or get help for a specific command. Usage: !help [command]`);
+      return true;
+    }
+    
+    // Handle built-in plugin command
+    if (commandName === 'plugin') {
+      await client.say(channel, `@${context.username} Help for !plugin: Manage bot plugins. Usage: !plugin <plugin-name> <list|info|enable|disable|reload|recover> or !plugin reload to reload all plugins`);
+      return true;
+    }
+    
+    // Handle built-in debug command
+    if (commandName === 'debug') {
+      await client.say(channel, `@${context.username} Help for !debug: Debug commands for moderators. Usage: !debug <plugins|hello|errors|reload|fixhello>`);
+      return true;
+    }
+    
+    // Handle special mod command
+    if (commandName === 'mod') {
+      await client.say(channel, `@${context.username} Help for !help mod: Display a list of all moderator-only commands available in the bot. Usage: !help mod`);
       return true;
     }
     
@@ -1752,83 +2260,459 @@ async function showPluginHelp(client, channel, context, plugin) {
 
 // Handle plugin command 
 async function handlePluginCommand(client, channel, context, params) {
-  try {
-    // Check if user is a moderator
-    const isMod = context.mod || context.badges?.broadcaster === '1' || 
-                  context.username.toLowerCase() === process.env.CHANNEL_NAME.toLowerCase();
-                  
-    if (!isMod) {
-      await client.say(channel, `@${context.username} Only moderators can use the plugin command.`);
-      return false;
-    }
-    
-    if (params.length < 2) {
-      await client.say(channel, `@${context.username} Usage: !plugin <name> <action>. Actions: enable, disable, reload, list`);
-      return false;
-    }
-    
-    const pluginName = params[0].toLowerCase();
-    const action = params[1].toLowerCase();
-    
-    // Handle list action (special case that doesn't require a plugin name)
-    if (pluginName === 'list') {
-      return await listPlugins(client, channel, context);
-    }
-    
-    // For other actions, get the plugin
-    const plugin = pluginManager.getPlugin(pluginName);
-    
-    if (!plugin && action !== 'list') {
-      await client.say(channel, `@${context.username} Plugin not found: ${pluginName}`);
-      return false;
-    }
-    
-    switch (action) {
-      case 'enable':
-        if (plugin.config && plugin.config.enabled) {
-          await client.say(channel, `@${context.username} Plugin ${pluginName} is already enabled.`);
-          return true;
-        }
-        
-        const enabled = pluginManager.enablePlugin(pluginName);
-        if (enabled) {
-          await client.say(channel, `@${context.username} Plugin ${pluginName} has been enabled.`);
-        } else {
-          await client.say(channel, `@${context.username} Failed to enable plugin ${pluginName}.`);
-        }
-        return enabled;
-        
-      case 'disable':
-        if (plugin.config && !plugin.config.enabled) {
-          await client.say(channel, `@${context.username} Plugin ${pluginName} is already disabled.`);
-          return true;
-        }
-        
-        const disabled = pluginManager.disablePlugin(pluginName);
-        if (disabled) {
-          await client.say(channel, `@${context.username} Plugin ${pluginName} has been disabled.`);
-        } else {
-          await client.say(channel, `@${context.username} Failed to disable plugin ${pluginName}.`);
-        }
-        return disabled;
-        
-      case 'reload':
-        const reloaded = pluginManager.reloadPlugin(pluginName);
-        if (reloaded) {
-          await client.say(channel, `@${context.username} Plugin ${pluginName} has been reloaded.`);
-        } else {
-          await client.say(channel, `@${context.username} Failed to reload plugin ${pluginName}.`);
-        }
-        return reloaded;
-        
-      default:
-        await client.say(channel, `@${context.username} Unknown plugin action: ${action}. Available actions: enable, disable, reload, list`);
-        return false;
-    }
-  } catch (error) {
-    logger.error(`Error handling plugin command:`, error);
+  // Check if the user is a moderator
+  const isMod = context.mod || context.badges?.broadcaster === '1' || 
+               context.username.toLowerCase() === process.env.CHANNEL_NAME.toLowerCase();
+  
+  if (!isMod) {
+    await client.say(channel, `@${context.username}, you need to be a moderator to use this command.`);
     return false;
   }
+  
+  // If no parameters, show usage
+  if (params.length === 0) {
+    await client.say(channel, `@${context.username}, usage: !plugin <plugin-name> <action> or !plugin <action> for global actions`);
+    return true;
+  }
+  
+  // Handle special case - !plugin reload to reload all plugins
+  if (params[0].toLowerCase() === 'reload' && params.length === 1) {
+    // Reload all plugins
+    const results = pluginManager.reloadAllPlugins();
+    
+    if (results.success.length > 0) {
+      await client.say(channel, `@${context.username}, reloaded ${results.success.length} plugins successfully, ${results.failed.length} failed`);
+    } else {
+      await client.say(channel, `@${context.username}, failed to reload any plugins`);
+    }
+    return true;
+  }
+    
+  // Handle special case - !plugin list to list all plugins
+  if (params[0].toLowerCase() === 'list' && params.length === 1) {
+    await listPlugins(client, channel, context);
+    return true;
+  }
+  
+  // Handle special case - !plugin errors to list plugins in error state
+  if (params[0].toLowerCase() === 'errors' && params.length === 1) {
+    const errorPlugins = pluginManager.getPluginsInErrorState();
+    
+    if (errorPlugins.length === 0) {
+      await client.say(channel, `@${context.username}, no plugins are currently in error state.`);
+      return true;
+    }
+    
+    const errorList = errorPlugins.map(p => `${p.name} (${p.error})`).join(', ');
+    await client.say(channel, `@${context.username}, plugins in error state: ${errorList}`);
+    return true;
+  }
+  
+  // Get the plugin name first, then the action
+  // New syntax: !plugin <plugin-name> <action>
+  const pluginName = params[0];
+  
+  // If only the plugin name is provided, show info about it
+  if (params.length === 1) {
+    const plugin = pluginManager.getPlugin(pluginName);
+    if (!plugin) {
+      await client.say(channel, `@${context.username}, plugin "${pluginName}" not found.`);
+      return false;
+    }
+    
+    const status = plugin.config?.enabled ? 'enabled' : 'disabled';
+    const errorStatus = plugin.config?.errorState ? ` (ERROR: ${plugin.config.lastError})` : '';
+    const commandList = plugin.commands ? plugin.commands.map(cmd => cmd.name).join(', ') : 'None';
+    
+    await client.say(channel, `@${context.username}, plugin "${pluginName}" is ${status}${errorStatus}. Commands: ${commandList}`);
+    return true;
+  }
+  
+  // Get the action (second parameter)
+  const action = params[1].toLowerCase();
+  
+  const plugin = pluginManager.getPlugin(pluginName);
+  
+  // If the plugin doesn't exist, show an error
+  if (!plugin && action !== 'recover') {
+    await client.say(channel, `@${context.username}, plugin "${pluginName}" not found.`);
+    return false;
+  }
+  
+  // Handle the different actions
+  let result = false;
+  switch (action) {
+    case 'info':
+      const status = plugin.config?.enabled ? 'enabled' : 'disabled';
+      const errorStatus = plugin.config?.errorState ? ` (ERROR: ${plugin.config.lastError})` : '';
+      const commandList = plugin.commands ? plugin.commands.map(cmd => cmd.name).join(', ') : 'None';
+      
+      await client.say(channel, `@${context.username}, plugin "${pluginName}" is ${status}${errorStatus}. Commands: ${commandList}`);
+      result = true;
+      break;
+      
+    case 'enable':
+      if (plugin.config?.errorState) {
+        await client.say(channel, `@${context.username}, plugin "${pluginName}" is in error state and cannot be enabled. Use "!plugin ${pluginName} recover" first.`);
+        return false;
+      }
+      
+      result = pluginManager.enablePlugin(pluginName);
+      if (result) {
+        await client.say(channel, `@${context.username}, plugin "${pluginName}" has been enabled.`);
+      } else {
+        await client.say(channel, `@${context.username}, failed to enable plugin "${pluginName}".`);
+      }
+      break;
+      
+    case 'disable':
+      result = pluginManager.disablePlugin(pluginName);
+      if (result) {
+        await client.say(channel, `@${context.username}, plugin "${pluginName}" has been disabled.`);
+      } else {
+        await client.say(channel, `@${context.username}, failed to disable plugin "${pluginName}".`);
+      }
+      break;
+      
+    case 'reload':
+      result = pluginManager.reloadPlugin(pluginName);
+      if (result) {
+        await client.say(channel, `@${context.username}, plugin "${pluginName}" has been reloaded.`);
+      } else {
+        await client.say(channel, `@${context.username}, failed to reload plugin "${pluginName}".`);
+      }
+      break;
+      
+    case 'recover':
+      result = pluginManager.recoverPlugin(pluginName);
+      if (result) {
+        await client.say(channel, `@${context.username}, plugin "${pluginName}" has been recovered from error state.`);
+      } else {
+        await client.say(channel, `@${context.username}, failed to recover plugin "${pluginName}" from error state.`);
+      }
+      break;
+
+    case 'config':
+      // Handle plugin configuration
+      if (params.length < 3) {
+        // If no setting is provided, show current config
+        try {
+          const configData = configManager.loadPluginConfig(pluginName, {});
+          const configKeys = Object.keys(configData);
+          
+          if (configKeys.length === 0) {
+            await client.say(channel, `@${context.username}, plugin "${pluginName}" has no configuration settings.`);
+          } else {
+            // Filter out complex objects for nicer display
+            const outputParts = [];
+            
+            // Add header
+            outputParts.push(`📝 ${pluginName} Configuration:`);
+            
+            // Add simple key/values first
+            const simpleKeys = configKeys.filter(key => 
+              typeof configData[key] !== 'object' || configData[key] === null
+            ).sort();
+            
+            if (simpleKeys.length > 0) {
+              for (const key of simpleKeys) {
+                const value = configData[key];
+                // Format boolean values with emojis for clarity
+                if (typeof value === 'boolean') {
+                  const statusEmoji = value ? '✅' : '❌';
+                  outputParts.push(`${statusEmoji} ${key}: ${value}`);
+                } else {
+                  outputParts.push(`• ${key}: ${value}`);
+                }
+              }
+            }
+            
+            // Add array values with count
+            const arrayKeys = configKeys.filter(key => 
+              Array.isArray(configData[key])
+            ).sort();
+            
+            if (arrayKeys.length > 0) {
+              for (const key of arrayKeys) {
+                const arr = configData[key];
+                outputParts.push(`📋 ${key}: [${arr.length} items]`);
+                
+                // For small arrays (3 or fewer), show the items
+                if (arr.length > 0 && arr.length <= 3) {
+                  outputParts.push(`   ${arr.join(', ')}`);
+                }
+              }
+            }
+            
+            // Add object values last (excluding arrays)
+            const objectKeys = configKeys.filter(key => 
+              typeof configData[key] === 'object' && 
+              configData[key] !== null && 
+              !Array.isArray(configData[key])
+            ).sort();
+            
+            if (objectKeys.length > 0) {
+              for (const key of objectKeys) {
+                const obj = configData[key];
+                const objKeys = Object.keys(obj);
+                outputParts.push(`🔧 ${key}: {${objKeys.length} settings}`);
+                
+                // For small objects (3 or fewer properties), show them
+                if (objKeys.length > 0 && objKeys.length <= 3) {
+                  for (const subKey of objKeys) {
+                    const value = obj[subKey];
+                    if (typeof value === 'boolean') {
+                      const statusEmoji = value ? '✅' : '❌';
+                      outputParts.push(`   ${statusEmoji} ${subKey}: ${value}`);
+                    } else {
+                      outputParts.push(`   • ${subKey}: ${value}`);
+                    }
+                  }
+                }
+              }
+            }
+            
+            // Format the final message with newlines
+            const message = outputParts.join(' | ');
+            await client.say(channel, `@${context.username}, ${message}`);
+          }
+        } catch (error) {
+          logger.error(`Error loading ${pluginName} config:`, error);
+          await client.say(channel, `@${context.username}, error loading config for plugin "${pluginName}": ${error.message}`);
+          return false;
+        }
+        return true;
+      }
+      
+      // Handle specific configuration setting
+      const configKey = params[2].toLowerCase();
+      
+      // If no value provided, it's a get operation
+      if (params.length === 3) {
+        try {
+          const configData = configManager.loadPluginConfig(pluginName, {});
+          
+          if (configData[configKey] === undefined) {
+            await client.say(channel, `@${context.username}, setting "${configKey}" not found in ${pluginName} config.`);
+            return false;
+          }
+          
+          const value = configData[configKey];
+          if (typeof value === 'object' && value !== null) {
+            if (Array.isArray(value)) {
+              // Format arrays nicely
+              const countMsg = value.length === 0 ? "empty" : `${value.length} items`;
+              if (value.length <= 5) {
+                // Show all items for small arrays
+                await client.say(channel, `@${context.username}, 📋 ${pluginName}.${configKey} = [${countMsg}]: ${value.join(', ')}`);
+              } else {
+                // Show only the first few for larger arrays
+                await client.say(channel, `@${context.username}, 📋 ${pluginName}.${configKey} = [${countMsg}]: ${value.slice(0, 3).join(', ')}... and ${value.length - 3} more`);
+              }
+            } else {
+              // Format objects nicely
+              const objKeys = Object.keys(value);
+              const countMsg = objKeys.length === 0 ? "empty" : `${objKeys.length} properties`;
+              
+              const keyValuePairs = [];
+              for (const key of objKeys.slice(0, 3)) {
+                keyValuePairs.push(`${key}: ${value[key]}`);
+              }
+              
+              if (objKeys.length <= 3) {
+                await client.say(channel, `@${context.username}, 🔧 ${pluginName}.${configKey} = {${countMsg}}: ${keyValuePairs.join(', ')}`);
+              } else {
+                await client.say(channel, `@${context.username}, 🔧 ${pluginName}.${configKey} = {${countMsg}}: ${keyValuePairs.join(', ')}... and ${objKeys.length - 3} more`);
+              }
+            }
+          } else if (typeof value === 'boolean') {
+            // Add emoji to boolean values
+            const statusEmoji = value ? '✅' : '❌';
+            await client.say(channel, `@${context.username}, ${statusEmoji} ${pluginName}.${configKey} = ${value}`);
+          } else if (typeof value === 'string') {
+            // Show strings
+            await client.say(channel, `@${context.username}, 📝 ${pluginName}.${configKey} = "${value}"`);
+          } else {
+            // Numbers and other types
+            await client.say(channel, `@${context.username}, 📊 ${pluginName}.${configKey} = ${value}`);
+          }
+        } catch (error) {
+          logger.error(`Error reading ${pluginName} config:`, error);
+          await client.say(channel, `@${context.username}, error reading config for plugin "${pluginName}": ${error.message}`);
+          return false;
+        }
+        return true;
+      }
+      
+      // Set operation - params[3] and beyond form the value
+      const configValue = params.slice(3).join(' ');
+      
+      try {
+        // Load current config
+        const configData = configManager.loadPluginConfig(pluginName, {});
+        
+        // Special handling for problematic keys that need direct plugin interaction
+        const specialKeys = ['autoShoutout', 'autoshoutout', 'autoShoutout.enabled', 'autoshoutout.enabled'];
+        const lowerConfigKey = configKey.toLowerCase();
+        
+        if (plugin && specialKeys.includes(lowerConfigKey)) {
+          logger.info(`Special handling for ${configKey} in ${pluginName}`);
+          
+          // Let the plugin handle this special case directly if it has the method
+          if (typeof plugin.setAutoShoutoutEnabled === 'function') {
+            logger.info(`Using plugin.setAutoShoutoutEnabled for ${pluginName}`);
+            const result = plugin.setAutoShoutoutEnabled(configValue);
+            await client.say(channel, `@${context.username}, updated ${pluginName} auto-shoutout setting to ${result ? 'enabled' : 'disabled'}`);
+            return true;
+          }
+        }
+        
+        // Parse the value based on type
+        let parsedValue;
+        
+        // Try to detect if it's a boolean, number, or string
+        if (configValue.toLowerCase() === 'true' || configValue.toLowerCase() === 'enable' || configValue.toLowerCase() === 'enabled') {
+          parsedValue = true;
+        } else if (configValue.toLowerCase() === 'false' || configValue.toLowerCase() === 'disable' || configValue.toLowerCase() === 'disabled') {
+          parsedValue = false;
+        } else if (!isNaN(Number(configValue))) {
+          parsedValue = Number(configValue);
+        } else if (configValue.startsWith('[') && configValue.endsWith(']')) {
+          try {
+            // Try to parse as array
+            parsedValue = JSON.parse(configValue);
+          } catch (e) {
+            parsedValue = configValue;
+          }
+        } else if (configValue.startsWith('{') && configValue.endsWith('}')) {
+          try {
+            // Try to parse as object
+            parsedValue = JSON.parse(configValue);
+          } catch (e) {
+            parsedValue = configValue;
+          }
+        } else {
+          parsedValue = configValue;
+        }
+        
+        // Handle updating nested properties (e.g., autoShoutout.enabled)
+        if (configKey.includes('.')) {
+          const keyParts = configKey.split('.');
+          let currentObj = configData;
+          
+          // Normalize key parts for case consistency (important for non-nested property names too)
+          const normalizedKeyParts = keyParts.map(part => {
+            // Check if a similar key (case-insensitive) already exists in the current object
+            if (part.toLowerCase() !== part) {
+              // For nested properties, we need to find if a similar key exists
+              const existingKeys = Object.keys(currentObj);
+              const existingKey = existingKeys.find(k => k.toLowerCase() === part.toLowerCase());
+              
+              // If a key with different casing exists, use that existing key
+              if (existingKey && existingKey !== part) {
+                logger.info(`Normalizing config key: ${part} → ${existingKey} to avoid duplicates`);
+                return existingKey;
+              }
+            }
+            return part;
+          });
+          
+          // Navigate to the parent object
+          for (let i = 0; i < normalizedKeyParts.length - 1; i++) {
+            const part = normalizedKeyParts[i];
+            // Create the object path if it doesn't exist
+            if (!currentObj[part] || typeof currentObj[part] !== 'object') {
+              currentObj[part] = {};
+            }
+            currentObj = currentObj[part];
+          }
+          
+          // Set the property on the parent object
+          const lastKey = normalizedKeyParts[normalizedKeyParts.length - 1];
+          currentObj[lastKey] = parsedValue;
+          
+          // Check for possibly duplicate keys with different casing at all levels
+          // This prevents issues like having both autoShoutout and autoshoutout
+          cleanupDuplicateKeys(configData);
+        } else {
+          // Check for case-insensitive duplicates at the root level
+          const existingKeys = Object.keys(configData);
+          let keyToUse = configKey;
+          
+          // See if there's already a key with different casing
+          const existingKey = existingKeys.find(k => k.toLowerCase() === configKey.toLowerCase() && k !== configKey);
+          
+          if (existingKey) {
+            // Use the existing key to avoid duplicates
+            keyToUse = existingKey;
+            logger.info(`Using existing config key: ${existingKey} instead of ${configKey} to avoid duplicates`);
+          }
+          
+          // Direct property update
+          configData[keyToUse] = parsedValue;
+          
+          // Remove any duplicate keys with different casing
+          cleanupDuplicateKeys(configData);
+        }
+        
+        // Helper function to remove duplicate keys with different casing
+        function cleanupDuplicateKeys(obj) {
+          if (!obj || typeof obj !== 'object') return;
+          
+          // Get all keys grouped by their lowercase version
+          const keysByLowercase = {};
+          Object.keys(obj).forEach(key => {
+            const lowerKey = key.toLowerCase();
+            if (!keysByLowercase[lowerKey]) {
+              keysByLowercase[lowerKey] = [];
+            }
+            keysByLowercase[lowerKey].push(key);
+          });
+          
+          // For each group of keys with the same lowercase version
+          Object.values(keysByLowercase).forEach(keys => {
+            if (keys.length > 1) {
+              // Keep the first key, remove others
+              const keyToKeep = keys[0];
+              keys.slice(1).forEach(keyToRemove => {
+                logger.info(`Removing duplicate config key: ${keyToRemove} (keeping ${keyToKeep})`);
+                delete obj[keyToRemove];
+              });
+            }
+          });
+          
+          // Recursively clean nested objects
+          Object.values(obj).forEach(val => {
+            if (val && typeof val === 'object' && !Array.isArray(val)) {
+              cleanupDuplicateKeys(val);
+            }
+          });
+        }
+        
+        // Save the updated config
+        configManager.savePluginConfig(pluginName, configData);
+        
+        // Get the plugin and notify it of config changes
+        if (plugin && typeof plugin.onConfigUpdate === 'function') {
+          plugin.onConfigUpdate(configKey, parsedValue);
+        }
+        
+        await client.say(channel, `@${context.username}, updated ${pluginName}.${configKey} = ${JSON.stringify(parsedValue)}`);
+        result = true;
+      } catch (error) {
+        logger.error(`Error setting ${pluginName} config:`, error);
+        await client.say(channel, `@${context.username}, error setting config for plugin "${pluginName}": ${error.message}`);
+        result = false;
+      }
+      break;
+      
+    default:
+      await client.say(channel, `@${context.username}, unknown action "${action}". Available actions: info, config, enable, disable, reload, recover`);
+      result = false;
+      break;
+  }
+  
+  return result;
 }
 
 // List all plugins
@@ -1870,66 +2754,6 @@ async function listPlugins(client, channel, context) {
     return false;
   }
 }
-
-// Set up event handlers for the Twitch client
-client.on('connected', async (address, port) => {
-  logger.info(`Connected to Twitch at ${address}:${port}`);
-  
-  // Emit connected event for plugins
-  botObject.events.emit('twitch:connected', { address, port });
-});
-
-client.on('join', (channel, username, self) => {
-  if (self) {
-    logger.info(`Successfully joined channel ${channel}`);
-    
-    // Emit join event for plugins
-    botObject.events.emit('twitch:join', { channel, username, self });
-  }
-});
-
-// Emit events for various Twitch actions
-client.on('subscription', (channel, username, method, message, userstate) => {
-  botObject.events.emit('twitch:subscription', { 
-    channel, username, method, message, userstate 
-  });
-});
-
-client.on('resub', (channel, username, months, message, userstate, methods) => {
-  botObject.events.emit('twitch:resub', { 
-    channel, username, months, message, userstate, methods 
-  });
-});
-
-client.on('subgift', (channel, username, streakMonths, recipient, methods, userstate) => {
-  botObject.events.emit('twitch:subgift', { 
-    channel, username, streakMonths, recipient, methods, userstate 
-  });
-});
-
-client.on('cheer', (channel, userstate, message) => {
-  botObject.events.emit('twitch:cheer', { 
-    channel, userstate, message 
-  });
-});
-
-client.on('raided', (channel, username, viewers) => {
-  botObject.events.emit('twitch:raid', { 
-    channel, username, viewers 
-  });
-});
-
-client.on('part', (channel, username, self) => {
-  if (self) {
-    logger.info(`Left channel ${channel}`);
-    botObject.events.emit('twitch:part', { channel, username, self });
-  }
-});
-
-client.on('disconnected', (reason) => {
-  logger.warn(`Disconnected from Twitch: ${reason}`);
-  botObject.events.emit('twitch:disconnected', { reason });
-});
 
 // Set up a timer to emit regular events for plugins
 let minuteCounter = 0;
@@ -1977,4 +2801,217 @@ botObject.emitEvent = function(eventName, data) {
     logger.error(`Error emitting custom event ${eventName}:`, error);
     return false;
   }
-}; 
+};
+
+// Add Twitch API event handling for plugins
+botObject.events.on('twitch:api:channelInfo:request', async (data) => {
+  try {
+    logger.info(`[TwitchAPI] Channel info requested for ${data.username} by plugin ${data.requestor}`);
+    
+    // Check for required environment variables
+    if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET) {
+      logger.warn('[TwitchAPI] CLIENT_ID or CLIENT_SECRET not set. Cannot fetch channel info.');
+      
+      // Send back error response
+      botObject.events.emit('twitch:api:channelInfo:response', {
+        requestId: data.requestId,
+        error: 'CLIENT_ID or CLIENT_SECRET not set',
+        username: data.username
+      });
+      return;
+    }
+    
+    // Get access token
+    const tokenResponse = await fetch('https://id.twitch.tv/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        grant_type: 'client_credentials'
+      })
+    });
+    
+    const tokenData = await tokenResponse.json();
+    if (!tokenData.access_token) {
+      logger.error('[TwitchAPI] Failed to get Twitch access token');
+      
+      // Send back error response
+      botObject.events.emit('twitch:api:channelInfo:response', {
+        requestId: data.requestId,
+        error: 'Failed to get Twitch access token',
+        username: data.username
+      });
+      return;
+    }
+    
+    // Get user information
+    const userResponse = await fetch(`https://api.twitch.tv/helix/users?login=${data.username}`, {
+      headers: {
+        'Client-ID': process.env.CLIENT_ID,
+        'Authorization': `Bearer ${tokenData.access_token}`
+      }
+    });
+    
+    const userData = await userResponse.json();
+    if (!userData.data || userData.data.length === 0) {
+      logger.info(`[TwitchAPI] User not found: ${data.username}`);
+      
+      // Send back error response
+      botObject.events.emit('twitch:api:channelInfo:response', {
+        requestId: data.requestId,
+        error: 'User not found',
+        username: data.username
+      });
+      return;
+    }
+    
+    const user = userData.data[0];
+    
+    // Get channel information
+    const channelResponse = await fetch(`https://api.twitch.tv/helix/channels?broadcaster_id=${user.id}`, {
+      headers: {
+        'Client-ID': process.env.CLIENT_ID,
+        'Authorization': `Bearer ${tokenData.access_token}`
+      }
+    });
+    
+    const channelData = await channelResponse.json();
+    if (!channelData.data || channelData.data.length === 0) {
+      logger.info(`[TwitchAPI] Channel not found for user: ${data.username}`);
+      
+      // Send back partial response with just user data
+      botObject.events.emit('twitch:api:channelInfo:response', {
+        requestId: data.requestId,
+        channelInfo: {
+          id: user.id,
+          name: user.login,
+          display_name: user.display_name,
+          description: user.description,
+          profile_image_url: user.profile_image_url,
+          is_live: false
+        },
+        username: data.username
+      });
+      return;
+    }
+    
+    const channel = channelData.data[0];
+    
+    // Check if the channel is live
+    const streamResponse = await fetch(`https://api.twitch.tv/helix/streams?user_id=${user.id}`, {
+      headers: {
+        'Client-ID': process.env.CLIENT_ID,
+        'Authorization': `Bearer ${tokenData.access_token}`
+      }
+    });
+    
+    const streamData = await streamResponse.json();
+    const isLive = streamData.data && streamData.data.length > 0;
+    
+    // Create combined response object
+    const channelInfo = {
+      id: user.id,
+      name: user.login,
+      display_name: user.display_name,
+      description: channel.title,
+      game_name: channel.game_name,
+      game_id: channel.game_id,
+      broadcaster_language: channel.broadcaster_language,
+      profile_image_url: user.profile_image_url,
+      offline_image_url: user.offline_image_url,
+      is_live: isLive,
+      url: `https://twitch.tv/${user.login}`
+    };
+    
+    // If live, add stream data
+    if (isLive && streamData.data && streamData.data.length > 0) {
+      const stream = streamData.data[0];
+      channelInfo.stream = {
+        id: stream.id,
+        title: stream.title,
+        viewer_count: stream.viewer_count,
+        started_at: stream.started_at,
+        thumbnail_url: stream.thumbnail_url
+      };
+    }
+    
+    logger.info(`[TwitchAPI] Successfully fetched channel info for ${data.username}`);
+    
+    // Send back successful response
+    botObject.events.emit('twitch:api:channelInfo:response', {
+      requestId: data.requestId,
+      channelInfo,
+      username: data.username
+    });
+    
+  } catch (error) {
+    logger.error(`[TwitchAPI] Error fetching channel info for ${data.username}:`, error);
+    
+    // Send back error response
+    botObject.events.emit('twitch:api:channelInfo:response', {
+      requestId: data.requestId,
+      error: `Error fetching channel info: ${error.message}`,
+      username: data.username
+    });
+  }
+}); 
+
+// Periodically check if we're still connected
+setInterval(() => {
+  // Use async/await pattern with error handling
+  (async () => {
+    try {
+      await checkTwitchConnection();
+    } catch (error) {
+      console.error('Error during periodic connection check:', error);
+    }
+  })();
+}, 60000); // Check every minute 
+
+// Process chat message for commands
+async function processCommands(client, channel, context, message) {
+  // Skip processing if the message doesn't start with the command prefix
+  if (!message.startsWith('!')) {
+    return false;
+  }
+  
+  // Extract the command name and parameters
+  const parts = message.trim().substring(1).split(' ');
+  const command = parts[0].toLowerCase();
+  const params = parts.slice(1);
+  
+  // Log the command
+  logger.info(`Received command: ${command} from ${context.username}`);
+  
+  // Check for built-in commands
+  let result = false;
+  switch (command) {
+    case 'debug':
+      // Debug commands are mod-only
+      const isModForDebug = context.mod || context.badges?.broadcaster === '1' || 
+                          context.username.toLowerCase() === process.env.CHANNEL_NAME.toLowerCase();
+      
+      if (!isModForDebug) {
+        await client.say(channel, `@${context.username}, you need to be a moderator to use debug commands.`);
+        return false;
+      }
+      
+      result = await handleDebugCommand(client, channel, context, params);
+      break;
+      
+    case 'plugin':
+      // Handle plugin management
+      result = await handlePluginCommand(client, channel, context, params);
+      break;
+      
+    default:
+      // Try to find a plugin that handles this command
+      result = await pluginManager.executeCommand(command, client, channel, context, message);
+      break;
+  }
+  
+  return result;
+} 

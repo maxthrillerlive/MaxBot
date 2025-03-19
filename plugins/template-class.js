@@ -66,31 +66,44 @@ class TemplatePlugin {
     
     this.logger.info(`[${this.name}] Plugin initializing...`);
     
-    // Load configuration
-    this.loadConfig();
-    
-    // Set up commands
-    this.setupCommands();
-    
-    // Set up event listeners
-    this.setupEventListeners();
-    
-    this.logger.info(`[${this.name}] Plugin initialized successfully`);
-    return true;
+    try {
+      // Load configuration
+      this.loadConfig();
+      
+      // Set up commands
+      this.setupCommands();
+      
+      // Set up event listeners
+      this.setupEventListeners();
+      
+      this.logger.info(`[${this.name}] Plugin initialized successfully`);
+      return true;
+    } catch (error) {
+      // Proper error handling during initialization
+      this.logger.error(`[${this.name}] Initialization failed: ${error.message}`);
+      // Rethrow the error to let the plugin manager know this plugin failed
+      throw error;
+    }
   }
   
   /**
    * Load plugin configuration
    */
   loadConfig() {
-    if (this.configManager) {
-      // Make a copy of the default config to use in loadPluginConfigWithoutSaving
-      const defaultConfig = { ...this.config };
-      
-      // Load the plugin's configuration
-      this.config = this.configManager.loadPluginConfigWithoutSaving(this.name, defaultConfig);
-      
-      this.logger.info(`[${this.name}] Configuration loaded: ${JSON.stringify(this.config)}`);
+    try {
+      if (this.configManager) {
+        // Make a copy of the default config to use in loadPluginConfigWithoutSaving
+        const defaultConfig = { ...this.config };
+        
+        // Load the plugin's configuration
+        this.config = this.configManager.loadPluginConfigWithoutSaving(this.name, defaultConfig);
+        
+        this.logger.info(`[${this.name}] Configuration loaded: ${JSON.stringify(this.config)}`);
+      }
+    } catch (error) {
+      this.logger.error(`[${this.name}] Error loading configuration: ${error.message}`);
+      // Don't throw here - use default config if loading fails
+      this.logger.info(`[${this.name}] Using default configuration`);
     }
   }
   
@@ -150,12 +163,31 @@ class TemplatePlugin {
   }
   
   /**
+   * Process messages from Twitch chat
+   * This is called by the onTwitchMessage event handler
+   * 
+   * @param {string} channel - The channel where the message was sent
+   * @param {Object} tags - The user's tags (badges, color, etc.)
+   * @param {string} message - The message content
+   * @param {boolean} self - Whether the message was sent by the bot
+   */
+  processMessage(channel, tags, message, self) {
+    // Skip messages from the bot itself
+    if (self) return;
+    
+    // Example: Respond to specific keywords in chat
+    if (message.toLowerCase().includes('hello') && !message.startsWith('!')) {
+      this.client.say(channel, `Hello, @${tags.username}!`);
+    }
+  }
+  
+  /**
    * Twitch message event handler
    * @param {Object} data - Event data
    */
   onTwitchMessage(data) {
-    // Called for every Twitch message - be careful not to do too much here
-    // this.logger.info(`[${this.name}] Message received: ${data.message}`);
+    // Process all messages through the main processing function
+    this.processMessage(data.channel, data.tags, data.message, data.self);
   }
   
   /**
@@ -309,25 +341,6 @@ class TemplatePlugin {
     } catch (error) {
       this.logger.error(`[${this.name}] Error in example command:`, error);
       return false;
-    }
-  }
-  
-  /**
-   * Message handler
-   * @param {string} channel - The channel
-   * @param {Object} user - The user who sent the message
-   * @param {string} message - The message content
-   * @param {boolean} self - Whether the message was sent by the bot
-   */
-  handleMessage(channel, user, message, self) {
-    // Skip messages from the bot itself
-    if (self) return;
-    
-    // Your message handling logic here
-    // For example, you could respond to specific keywords or patterns
-    if (message.toLowerCase().includes('template')) {
-      // Uncomment the line below to respond to messages containing "template"
-      // this.client.say(channel, `I'm a template plugin, @${user.username}!`);
     }
   }
   
