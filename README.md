@@ -1,63 +1,148 @@
 # MaxBot
 
-A customizable Twitch chat bot with WebSocket API support and plugin system.
+A modular Twitch chat bot built with Node.js, featuring a plugin system, custom commands, and event-driven architecture.
 
-## Features
+## Installation Instructions
 
-- Twitch chat integration using `tmi.js`
-- WebSocket API for external control
-- Plugin system for extending functionality
-- Custom command system with hot-reloading
-- Secure OAuth2 authentication
-- Configuration management with JSON files
-- Mod-only command support
+1. **Prerequisites**
+   - [Node.js](https://nodejs.org/) (v14.0.0 or newer)
+   - [npm](https://www.npmjs.com/) (usually comes with Node.js)
+   - A Twitch account for your bot
+   - Twitch OAuth credentials (see below for setup)
 
-## Setup
+2. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/MaxBot.git
+   cd MaxBot
+   ```
 
-1. Install dependencies:
-```bash
-npm install dotenv
-npm install
-```
+3. **Install dependencies**
+   ```bash
+   npm install
+   ```
+   
+   This will install the following key dependencies:
+   - `tmi.js`: Twitch Messaging Interface for chat interactions
+   - `ws`: WebSocket library for the API server
+   - `fs-extra`: Enhanced file system operations
+   - `chalk`: Terminal text styling
+   - `express`: Web server for the control panel (if enabled)
+   - `winston`: Logging framework
+   
+   You can also install optional development dependencies:
+   ```bash
+   npm install --save-dev nodemon
+   ```
+   
+   This installs:
+   - `nodemon`: Monitors for changes and automatically restarts the bot during development
 
-2. Configure the bot:
-   - Go to [Twitch Developer Console](https://dev.twitch.tv/console)
-   - Create a new application
-   - Set OAuth Redirect URL to: `http://localhost:3000/callback`
-   - Copy Client ID and Client Secret
-   - Create a `.env` file with:
+4. **Set up Twitch OAuth credentials**
+   
+   To connect to Twitch, you'll need to:
+   
+   a. Visit the [Twitch Developer Console](https://dev.twitch.tv/console/apps)
+   
+   b. Create a new application with the following details:
+      - Name: MaxBot (or your preferred name)
+      - OAuth Redirect URLs: http://localhost:3000/callback
+      - Category: Chat Bot
+   
+   c. Note your Client ID and generate a Client Secret
+   
+   d. Generate an OAuth token using one of these methods:
+   
+      **Option 1: Use the built-in auth server (Recommended)**
+      ```bash
+      # Set your environment variables first
+      set CLIENT_ID=your_client_id
+      set CLIENT_SECRET=your_client_secret
+      set BOT_USERNAME=your_bot_username
+      
+      # Start the auth server
+      node auth-server.js
+      ```
+      
+      Then visit `http://localhost:3000` in your browser and follow the on-screen instructions to authenticate. The token will be automatically saved to the appropriate configuration file.
+      
+      **Option 2: Use an alternative token generator**
+      
+      Visit [Twitch Token Generator](https://twitchtokengenerator.com/) by swiftyspiffy and generate a chat token.
+      The token will look like: `oauth:1234567890abcdefghijklmn`
+      
+      Note: For production applications, it's recommended to implement your own OAuth flow rather than using third-party token generators.
 
-```env
-CLIENT_ID=your_client_id
-CLIENT_SECRET=your_client_secret
-BOT_USERNAME=your_bot_username
-CHANNEL_NAME=your_channel_name
-PORT=8080
-AUTH_PORT=3000
-NODE_ENV=development
-```
+5. **Configure the bot**
+   - Edit the following configuration files in the `config` directory:
+   
+     - `maxbot.json`: Core bot settings
+       ```json
+       {
+         "bot": {
+           "username": "YourBotUsername",
+           "channels": ["YourChannelName"],
+           "autoReconnect": true,
+           "reconnectInterval": 5000,
+           "maxReconnectAttempts": 10
+         },
+         "webcp": {
+           "port": 3000,
+           "wsPort": 8080
+         }
+       }
+       ```
+     
+     - `commands.json`: Command prefix and cooldown settings
+       ```json
+       {
+         "prefix": "!",
+         "cooldown": 1000
+       }
+       ```
+     
+     - `features.json`: Logging and chat history settings
+       ```json
+       {
+         "enableLogging": true,
+         "enableChatHistory": true,
+         "maxChatHistory": 100,
+         "maxLogEntries": 1000
+       }
+       ```
 
-3. Authenticate the bot:
-```bash
-npm run auth
-```
+6. **Start the bot**
+   
+   Regular operation:
+   ```bash
+   node index.js
+   ```
+   
+   For development with auto-restart:
+   ```bash
+   npx nodemon index.js
+   ```
+   
+   To run in the background (Linux/macOS):
+   ```bash
+   nohup node index.js > output.log 2>&1 &
+   ```
+   
+   To run as a Windows service, consider using [pm2](https://pm2.keymetrics.io/):
+   ```bash
+   npm install -g pm2
+   pm2 start index.js --name maxbot
+   ```
 
-4. Start the bot:
-```bash
-npm start
-```
-
-For development with auto-reload:
-```bash
-npm run dev
-```
+7. **Verify the installation**
+   
+   - Visit `http://localhost:8080` in your browser to access the web control panel (if enabled)
+   - The bot should connect to your specified Twitch channel(s)
+   - Try typing `!help` in your Twitch chat to see available commands
 
 ## Project Structure
 
 ```
 ├── index.js           # Main bot entry point
-├── twitch-auth.js     # Twitch authentication module
-├── auth-server.js     # Authentication server
 ├── pluginManager.js   # Plugin management system
 ├── configManager.js   # Configuration management
 ├── logger.js          # Logging utility
@@ -67,26 +152,66 @@ npm run dev
 │   └── ...            # Other plugins
 └── config/            # Configuration files
     ├── maxbot.json    # Main bot configuration
-    ├── help.json      # Help plugin configuration
-    └── ...            # Other plugin configs
+    ├── commands.json  # Command settings
+    ├── features.json  # Feature settings
+    └── *.json         # Plugin-specific configs
 ```
 
-## Configuration System
+## Features
 
-MaxBot uses a configuration system with JSON files stored in the `config/` directory:
+- Twitch chat integration using `tmi.js`
+- WebSocket API for external control
+- Plugin system for extending functionality
+- Configuration management with JSON files
+- Event-driven architecture with hooks
+- Automatic plugin loading and configuration
+- Mod-only command support
 
-- `maxbot.json`: Main bot configuration
-- `[plugin-name].json`: Plugin-specific configuration files
+## Core API Components
 
-Configuration files are automatically created and loaded when the bot starts.
+- **Bot**: Main bot instance providing access to Twitch connections and events
+- **ConfigManager**: Manages configuration files for the bot and plugins
+- **PluginManager**: Loads, initializes, and manages plugins
+- **Logger**: Provides logging functionality throughout the application
 
 ## Plugin System
 
-MaxBot uses a plugin system for extending functionality. Plugins are loaded from the `plugins/` directory.
-
 ### Creating a Plugin
 
-1. Create a new file in the `plugins/` directory:
+Plugins can be created either as an object or a class:
+
+#### Class-based Plugin
+
+```javascript
+module.exports = class ExamplePlugin {
+  constructor(bot) {
+    this.bot = bot;                        // Main bot instance
+    this.name = 'example';                 // Unique plugin name
+    this.description = 'Example plugin';   // Plugin description
+    this.version = '1.0.0';                // Plugin version
+    this.author = 'MaxBot';                // Plugin author
+    
+    this.configManager = bot.configManager; // Access to configuration
+    this.logger = bot.logger;              // Access to logging system
+    this.commands = {};                    // Plugin commands
+  }
+  
+  init() {
+    // Plugin initialization code
+    this.reloadConfig();                   // Load plugin configuration
+    this.registerCommands();               // Register plugin commands
+    this.setupEventListeners();            // Set up event listeners
+    return true;
+  }
+  
+  // Required plugin methods
+  reloadConfig() { /* Load plugin-specific configuration */ }
+  registerCommands() { /* Register plugin commands */ }
+  setupEventListeners() { /* Set up event listeners */ }
+}
+```
+
+#### Object-based Plugin
 
 ```javascript
 // hello.js - Example plugin
@@ -99,7 +224,7 @@ const plugin = {
     // Plugin configuration
     config: {
         enabled: true,
-        greetingMessage: 'Hello {username}!'
+        greetingMessage: 'Hello {displayName}!'
     },
     
     // Commands provided by this plugin
@@ -115,7 +240,7 @@ const plugin = {
                 enabled: true
             },
             execute: async (client, channel, context, commandText) => {
-                const message = plugin.config.greetingMessage.replace('{username}', context.username);
+                const message = plugin.config.greetingMessage.replace('{displayName}', context.displayName);
                 await client.say(channel, message);
                 return true;
             }
@@ -134,29 +259,14 @@ const plugin = {
 module.exports = plugin;
 ```
 
-2. The plugin will be automatically loaded by the plugin manager when the bot starts.
-
-### Plugin Commands
-
-Plugins can provide commands that are automatically registered with the bot. Each command should have:
-
-- `name`: The command name (without prefix)
-- `config`: Command configuration (description, usage, aliases, etc.)
-- `execute`: Function to execute when the command is triggered
-
-### Plugin Lifecycle
+### Plugin Lifecycle Methods
 
 - `init(bot, logger)`: Called when the plugin is initialized
 - `enable()`: Called when the plugin is enabled
 - `disable()`: Called when the plugin is disabled
-- `processIncomingMessage(messageObj)`: Process incoming chat messages
-- `processOutgoingMessage(messageObj)`: Process outgoing chat messages
+- `reloadConfig()`: Load the plugin's configuration
 
 ### Adding Help Information
-
-To make your plugin's commands discoverable and usable by others, you should add help information to your plugin. This information will be used by the `!help` command to display usage instructions.
-
-Add a `help` property to your plugin with a structure like this:
 
 ```javascript
 // Help information for the plugin
@@ -171,30 +281,96 @@ help: {
                 '!commandname value1 value2',
                 '!commandname other example'
             ]
-        },
-        // Add more command help entries as needed
+        }
     ]
 }
 ```
 
-Users can then get help for your plugin using:
-- `!help pluginname` - Shows general help for your plugin
-- `!help commandname` - Shows help for a specific command
+## Event Hooks System
 
-The help system will automatically display your plugin's description, list available commands, and show usage examples.
+MaxBot uses an event-driven architecture that allows plugins to respond to various events.
 
-## Chat Commands
+### Core Events
 
-The bot includes several built-in commands:
+- **twitch:connected**: Fired when the bot connects to Twitch
+- **twitch:disconnected**: Fired when the bot disconnects from Twitch
+- **twitch:message**: Fired when a message is received in chat
+- **twitch:command**: Fired when a command is triggered
+- **twitch:join**: Fired when a user joins the channel
+- **twitch:part**: Fired when a user leaves the channel
+- **twitch:sub/resub/subgift**: Fired for subscription events
+- **twitch:cheer**: Fired when a cheer event occurs
+- **twitch:raid**: Fired when a raid event occurs
+- **command:before/after**: Fired before/after command processing
+- **timer:minute/hour**: Fired on timer intervals
+- **plugin:enabled/disabled/loaded/unload/reloaded**: Plugin lifecycle events
+
+### Using Hooks in Plugins
+
+```javascript
+setupEventListeners() {
+  // Listen for chat messages
+  this.bot.events.on('twitch:message', this.onTwitchMessage.bind(this));
+  
+  // Listen for channel joins
+  this.bot.events.on('twitch:join', this.onChannelJoin.bind(this));
+  
+  // Listen for command triggers
+  this.bot.events.on('twitch:command', this.onCommand.bind(this));
+}
+
+onTwitchMessage(data) {
+  // Handle message data
+  const { channel, sender, message, isMod } = data;
+  // Process the message
+}
+
+onChannelJoin(data) {
+  // Handle join data
+  const { channel, username } = data;
+  // Process the join event
+}
+
+onCommand(data) {
+  // Handle command data
+  const { channel, sender, command, args } = data;
+  // Process the command
+}
+```
+
+### Emitting Custom Events
+
+```javascript
+// Emit a custom event
+this.bot.emitEvent('myCustomEvent', { 
+  plugin: this.name,
+  timestamp: Date.now(),
+  someData: 'Custom data'
+});
+```
+
+## Configuration System
+
+MaxBot uses JSON configuration files in the `config/` directory:
+
+- `maxbot.json`: Main bot configuration
+- `commands.json`: Command settings
+- `features.json`: Feature settings
+- `[plugin-name].json`: Plugin-specific configuration
+
+Plugin configuration files are automatically created with defaults when a plugin is first loaded.
+
+## Built-in Commands
 
 - `!help`: Shows available commands
-- `!reload`: Reloads all plugins (mod only)
-- `!enable [plugin]`: Enables a plugin (mod only)
-- `!disable [plugin]`: Disables a plugin (mod only)
+- `!help <command>`: Shows help for a specific command
+- `!help <plugin>`: Shows help for a specific plugin
+- `!plugin list`: Lists all available plugins and their status
+- `!plugin <name> enable/disable/reload`: Manages plugins (mod only)
 
 ## WebSocket API
 
-The bot exposes a WebSocket server on port 8080 with the following message types:
+The bot exposes a WebSocket server with the following message types:
 
 ### Incoming Messages
 - `GET_STATUS`: Request bot status
@@ -214,316 +390,9 @@ The bot exposes a WebSocket server on port 8080 with the following message types
 - `CONNECTED`: Bot connected to Twitch
 - `DISCONNECTED`: Bot disconnected from Twitch
 
-## Related Projects
+## Error Handling
 
-- [MaxBot-tui](https://github.com/maxthrillerlive/MaxBot-tui) - Terminal User Interface client
-
-## License
-
-MIT 
-
-## Creating Third-Party Plugins
-
-MaxBot is designed to be extended with plugins. You can create your own plugins without direct access to the MaxBot source code. This section explains how to create and distribute third-party plugins.
-
-### Plugin Structure
-
-A MaxBot plugin is a JavaScript file with a specific structure. The file should export an object (or a class instance) with the following properties and methods:
-
-```javascript
-// Example plugin structure
-const plugin = {
-    // Required properties
-    name: 'myplugin',                  // Unique name for your plugin
-    version: '1.0.0',                  // Version of your plugin
-    description: 'Does something cool', // Description of what your plugin does
-    author: 'Your Name',               // Your name or organization
-    
-    // Plugin state
-    enabled: true,                     // Whether the plugin is enabled by default
-    client: null,                      // Will be set to the Twitch client
-    logger: null,                      // Will be set to the logger
-    
-    // Default configuration
-    config: {
-        enabled: true,                 // Whether the plugin is enabled (required)
-        // Your custom configuration options
-        option1: 'default value',
-        option2: 123
-    },
-    
-    // Commands provided by this plugin
-    commands: [],
-    
-    // Required methods
-    
-    // Called when the plugin is loaded and enabled
-    init: function(bot, logger) {
-        this.bot = bot;
-        this.client = bot.client;
-        this.logger = logger;
-        this.configManager = bot.pluginManager.configManager;
-        
-        this.logger.info(`[${this.name}] Plugin initializing...`);
-        
-        // Set up commands
-        this.commands = [
-            {
-                name: 'mycommand',
-                config: {
-                    description: 'Does something cool',
-                    usage: '!mycommand [options]',
-                    aliases: ['mc'],
-                    cooldown: 5,
-                    modOnly: false,
-                    enabled: true
-                },
-                execute: async (client, channel, context, commandText) => {
-                    try {
-                        // Your command logic here
-                        await client.say(channel, `@${context.username} Command executed!`);
-                        return true;
-                    } catch (error) {
-                        this.logger.error(`[${this.name}] Error in command:`, error);
-                        return false;
-                    }
-                }
-            }
-        ];
-        
-        // Register message handlers if needed
-        bot.onMessage(this.handleMessage.bind(this));
-        
-        this.logger.info(`[${this.name}] Plugin initialized successfully`);
-        return true;
-    },
-    
-    // Optional methods
-    
-    // Called when a message is received (if registered)
-    handleMessage: function(channel, user, message, self) {
-        // Your message handling logic here
-    },
-    
-    // Called when the plugin is enabled
-    enable: function() {
-        this.config.enabled = true;
-        return true;
-    },
-    
-    // Called when the plugin is disabled
-    disable: function() {
-        this.config.enabled = false;
-        return true;
-    }
-};
-
-module.exports = plugin;
-```
-
-### Installation
-
-To install a third-party plugin:
-
-1. Place the plugin file in the `plugins` directory of your MaxBot installation.
-2. Restart MaxBot or use the `!reload` command to load the new plugin.
-3. Configure the plugin using the appropriate configuration file in the `config` directory.
-
-### Plugin Configuration
-
-Plugins can have their own configuration files. MaxBot will automatically create a configuration file for your plugin in the `config` directory based on the default values in your plugin's `config` object.
-
-The configuration file will be named after your plugin (e.g., `myplugin.json`) and will contain the settings for your plugin.
-
-Users can edit this file to customize your plugin's behavior without having to modify your plugin code.
-
-### Creating Commands
-
-Commands are defined in the `commands` array. Each command should have:
-
-1. A unique name
-2. A configuration object with:
-   - `description`: Description of what the command does
-   - `usage`: How to use the command
-   - `aliases`: Alternative names for the command (array)
-   - `cooldown`: Time in seconds between uses
-   - `modOnly`: Whether the command is restricted to moderators
-   - `enabled`: Whether the command is enabled
-3. An `execute` function that handles the command
-
-The `execute` function should accept:
-- `client`: The Twitch client
-- `channel`: The channel the command was used in
-- `context`: The user context
-- `commandText`: The full command text
-
-### Accessing MaxBot Features
-
-Your plugin has access to:
-
-1. **Twitch Client**: Use `this.client` to interact with Twitch chat
-2. **Logger**: Use `this.logger` for logging
-3. **Configuration Manager**: Use `this.configManager` to load and save settings
-4. **Plugin Manager**: Use `this.bot.pluginManager` to interact with other plugins
-
-### Distribution
-
-To distribute your plugin:
-
-1. Package your plugin file(s)
-2. Include installation instructions
-3. Document any configuration options
-4. Share with other MaxBot users
-
-Remember to respect the MaxBot license when distributing plugins.
-
-### Examples
-
-You'll find these template files in the `plugins` directory that you can use as a starting point:
-
-1. **template.js** - An object-based template plugin with detailed comments
-2. **template-class.js** - A class-based template plugin with detailed comments and TypeScript-style JSDoc comments
-
-These templates include all the required methods and properties for a MaxBot plugin along with examples of command handling, message handling, and configuration management.
-
-Check out the existing plugins in the `plugins` directory for additional examples of how to create plugins for MaxBot.
-
-## Built-in Commands
-
-MaxBot comes with the following built-in commands:
-
-### Help Command
-
-The `!help` command is built directly into MaxBot and provides information about available commands and plugins.
-
-Usage:
-- `!help` - Lists all available commands
-- `!help <command>` - Shows help for a specific command
-- `!help <plugin>` - Shows help for a specific plugin
-
-When a plugin provides detailed help information, the help command will display that information, including command descriptions, usage details, and examples.
-
-### Plugin Management
-
-The `!plugin` command allows moderators to manage plugins at runtime.
-
-Usage:
-- `!plugin list` - Lists all available plugins and their status
-- `!plugin <name> enable` - Enables a plugin
-- `!plugin <name> disable` - Disables a plugin
-- `!plugin <name> reload` - Reloads a plugin from disk
-
-Only moderators can use the plugin management commands.
-
-# Using Plugin Hooks
-
-MaxBot provides a comprehensive event hook system that allows plugins to respond to various events within the bot. This enables plugins to react to Twitch events, bot actions, commands, timers, and other plugin lifecycle events.
-
-## Available Events
-
-### Twitch Events
-- **twitch:message** - Triggered for every message in chat
-- **twitch:connected** - Triggered when the bot connects to Twitch
-- **twitch:join** - Triggered when the bot joins a channel
-- **twitch:part** - Triggered when the bot leaves a channel
-- **twitch:disconnected** - Triggered when the bot disconnects from Twitch
-- **twitch:subscription** - Triggered when someone subscribes
-- **twitch:resub** - Triggered when someone resubscribes
-- **twitch:subgift** - Triggered when someone gifts a subscription
-- **twitch:cheer** - Triggered when someone cheers with bits
-- **twitch:raid** - Triggered when someone raids the channel
-
-### Command Events
-- **command:before** - Triggered before a command is processed
-- **command:after** - Triggered after a command is processed (includes success status)
-
-### Timer Events
-- **timer:minute** - Triggered every minute
-- **timer:hour** - Triggered every hour
-- **bot:uptime** - Triggered every minute with bot uptime information
-
-### Plugin Lifecycle Events
-- **plugin:enabled** - Triggered when a plugin is enabled
-- **plugin:disabled** - Triggered when a plugin is disabled
-- **plugin:loaded** - Triggered when a plugin is loaded
-- **plugin:unload** - Triggered when a plugin is about to be unloaded
-- **plugin:reloaded** - Triggered when a plugin is reloaded
-
-### Custom Events
-Plugins can emit and listen to custom events as well:
-- **custom:{eventName}** - General custom events
-- **plugin:{pluginName}:{eventName}** - Plugin-specific custom events
-
-## Using Event Hooks in Your Plugin
-
-To use the event system, subscribe to events in your plugin's initialization:
-
-```javascript
-// In your plugin's init function or setupEventListeners method
-this.bot.events.on('twitch:message', this.onTwitchMessage.bind(this));
-this.bot.events.on('command:before', this.onCommandBefore.bind(this));
-```
-
-Then implement the corresponding event handlers:
-
-```javascript
-// Event handler methods
-onTwitchMessage(data) {
-  // Handle the event
-  this.logger.info(`Message from ${data.tags.username}: ${data.message}`);
-}
-
-onCommandBefore(data) {
-  this.logger.info(`Command ${data.command} is about to be executed`);
-}
-```
-
-## Emitting Custom Events
-
-Plugins can emit their own custom events using the emitEvent method:
-
-```javascript
-// Emit a custom event
-this.bot.emitEvent('myCustomEvent', { 
-  plugin: this.name,
-  timestamp: Date.now(),
-  someData: 'Custom data'
-});
-```
-
-Other plugins can then listen for these custom events:
-
-```javascript
-// Listen for a custom event from any plugin
-this.bot.events.on('custom:myCustomEvent', this.onMyCustomEvent.bind(this));
-
-// Listen for a custom event from a specific plugin
-this.bot.events.on('plugin:specificPlugin:myCustomEvent', this.onSpecificPluginEvent.bind(this));
-```
-
-## Example Implementation
-
-See the template plugins for complete examples of how to use the event system:
-- `plugins/template.js` - Object-based plugin template with event hooks
-- `plugins/template-class.js` - Class-based plugin template with event hooks 
-
-# Plugin Error Handling
-
-MaxBot includes a robust error handling system for plugins. This helps ensure that a single plugin failure doesn't affect the entire bot.
-
-## Plugin Initialization Errors
-
-When a plugin fails to initialize:
-
-1. The plugin manager catches the error and marks the plugin as disabled
-2. The error details are logged and stored in the plugin's configuration
-3. The plugin manager continues initializing other plugins
-4. A timeout protection mechanism prevents hanging if a plugin's initialization doesn't complete
-5. An event `plugins:init:errors` is emitted with details of all failed plugins
-
-## Writing Robust Plugins
-
-To make your plugins more resilient:
+MaxBot includes error handling for plugins to prevent individual plugin failures from affecting the entire bot:
 
 ```javascript
 // Good practice for initialization
@@ -533,7 +402,7 @@ init: function(bot, logger) {
     return true;
   } catch (error) {
     logger.error(`[${this.name}] Initialization failed: ${error.message}`);
-    throw error; // Rethrow to inform plugin manager about the failure
+    throw error; // Rethrow to inform plugin manager
   }
 }
 
@@ -544,18 +413,15 @@ async executeCommand(client, channel, context, commandText) {
     return true;
   } catch (error) {
     this.logger.error(`[${this.name}] Command error: ${error.message}`);
-    return false; // Don't throw - just return false to indicate failure
+    return false; // Return false to indicate failure
   }
 }
 ```
 
-## Checking Plugin Error State
+## Related Projects
 
-You can check if a plugin is in an error state:
+- [MaxBot-tui](https://github.com/maxthrillerlive/MaxBot-tui) - Terminal User Interface client
 
-```javascript
-const plugin = pluginManager.getPlugin('pluginName');
-if (plugin.config && plugin.config.errorState) {
-  console.log(`Plugin error: ${plugin.config.lastError}`);
-}
-``` 
+## License
+
+MIT 
