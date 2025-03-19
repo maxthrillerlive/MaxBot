@@ -613,6 +613,7 @@ class PluginManager {
         // Look for the command in this plugin by name or alias
         const command = plugin.commands.find(cmd => 
           cmd.name === commandName || 
+          (cmd.aliases && Array.isArray(cmd.aliases) && cmd.aliases.includes(commandName)) ||
           (cmd.config && cmd.config.aliases && Array.isArray(cmd.config.aliases) && cmd.config.aliases.includes(commandName))
         );
         

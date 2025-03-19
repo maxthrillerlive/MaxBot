@@ -1,3 +1,23 @@
 {
-  "enabled": true
+  "enabled": true,
+  "server": "192.168.1.85",
+  "port": 5000,
+  "useHttps": false,
+  "apiPath": "/translate",
+  "apiUrl": "http://192.168.1.85:5000/translate",
+  "apiKey": "",
+  "defaultSourceLang": "auto",
+  "defaultTargetLang": "en",
+  "translateAll": true,
+  "commands": {
+    "translate": {
+      "trigger": "libretranslate",
+      "aliases": ["lt", "tr"],
+      "description": "Translate text to another language or list available languages",
+      "usage": "!libretranslate <target_lang> <text> OR !libretranslate languages",
+      "cooldown": 5,
+      "modOnly": false,
+      "enabled": true
+    }
+  }
 }
