@@ -3,6 +3,9 @@
  * Provides help and command information functionality
  */
 
+const fs = require('fs');
+const path = require('path');
+
 class HelpPlugin {
   constructor() {
     this.name = 'help';
@@ -249,76 +252,143 @@ class HelpPlugin {
   // Show help for a specific command
   async showCommandHelp(client, channel, context, commandName) {
     try {
-      // Handle built-in help command
+      this.logger.info(`[${this.name}] Showing command help for '${commandName}'`);
+      
+      // Additional debug logging
+      this.logger.info(`[${this.name}] Debug - Plugin Manager exists: ${!!this.pluginManager}`);
+      this.logger.info(`[${this.name}] Debug - Plugins in PluginManager: ${[...this.pluginManager.plugins.keys()].join(', ')}`);
+      
+      // Check available plugin configs
+      try {
+        const pluginConfigs = fs.readdirSync(path.join(process.cwd(), 'config', 'plugins'))
+          .filter(file => file.endsWith('.json'))
+          .map(file => file.replace('.json', ''));
+        this.logger.info(`[${this.name}] Debug - Available plugin configs: ${pluginConfigs.join(', ')}`);
+      } catch (err) {
+        this.logger.error(`[${this.name}] Error listing plugin configs: ${err.message}`);
+      }
+      
+      // First, try to handle commands from plugin config files
+      // Check if this is a plugin name
+      const directPlugin = this.pluginManager.getPlugin(commandName);
+      if (directPlugin) {
+        this.logger.info(`[${this.name}] '${commandName}' is a direct plugin name`);
+        const pluginConfig = this.pluginManager.configManager.loadPluginConfig(commandName);
+        
+        this.logger.info(`[${this.name}] Debug - Plugin config for ${commandName}: ${JSON.stringify(pluginConfig ? {
+          hasHelp: !!pluginConfig.help,
+          hasGeneralHelp: pluginConfig.help ? !!pluginConfig.help.generalHelp : false,
+          generalHelpLength: pluginConfig.help && pluginConfig.help.generalHelp ? pluginConfig.help.generalHelp.length : 0
+        } : 'null')}`);
+        
+        if (pluginConfig && pluginConfig.help && pluginConfig.help.generalHelp) {
+          this.logger.info(`[${this.name}] Found generalHelp in ${commandName} plugin config`);
+          await client.say(channel, `@${context.username} ${pluginConfig.help.generalHelp}`);
+          return true;
+        }
+      }
+      
+      // Check if this is a command from a plugin with config
+      // First try to find which plugin this command belongs to
+      let parentPlugin = null;
+      const allPlugins = [...this.pluginManager.plugins.values()];
+      
+      for (const plugin of allPlugins) {
+        if (plugin.commands && Array.isArray(plugin.commands)) {
+          const hasCommand = plugin.commands.some(cmd => 
+            cmd.name === commandName || 
+            (cmd.aliases && Array.isArray(cmd.aliases) && cmd.aliases.includes(commandName))
+          );
+          
+          if (hasCommand) {
+            this.logger.info(`[${this.name}] Command '${commandName}' belongs to plugin '${plugin.name}'`);
+            parentPlugin = plugin;
+            break;
+          }
+        }
+      }
+      
+      if (parentPlugin) {
+        const pluginConfig = this.pluginManager.configManager.loadPluginConfig(parentPlugin.name);
+        
+        if (pluginConfig && pluginConfig.help && pluginConfig.help.commands) {
+          this.logger.info(`[${this.name}] Looking for command help in ${parentPlugin.name} plugin config`);
+          
+          // Handle 'stand' as an alias for 'stay'
+          const lookupName = commandName === 'stand' ? 'stay' : commandName;
+          
+          const cmdHelp = pluginConfig.help.commands.find(c => c.name === lookupName);
+          if (cmdHelp) {
+            this.logger.info(`[${this.name}] Found help for '${lookupName}' in ${parentPlugin.name} plugin config`);
+            await client.say(channel, `@${context.username} Help for !${cmdHelp.name}: ${cmdHelp.description}. Usage: ${cmdHelp.usage}`);
+            if (cmdHelp.details) {
+              await client.say(channel, `@${context.username} ${cmdHelp.details}`);
+            }
+            return true;
+          }
+        }
+      }
+      
+      // Special cases for built-in commands
       if (commandName === 'help') {
         await client.say(channel, `@${context.username} Help for !help: List available commands or get help for a specific command. Usage: !help [command]`);
         return true;
       }
       
-      // Handle built-in plugin command
       if (commandName === 'plugin') {
         await client.say(channel, `@${context.username} Help for !plugin: Manage bot plugins. Usage: !plugin <plugin-name> <list|info|enable|disable|reload|recover> or !plugin reload to reload all plugins`);
         return true;
       }
       
-      // Handle built-in debug command
       if (commandName === 'debug') {
         await client.say(channel, `@${context.username} Help for !debug: Debug commands for moderators. Usage: !debug <plugins|hello|errors|reload|fixhello>`);
         return true;
       }
       
-      // Handle special mod command
       if (commandName === 'mod') {
         await client.say(channel, `@${context.username} Help for !help mod: Display a list of all moderator-only commands available in the bot. Usage: !help mod`);
         return true;
       }
       
-      // Get all commands
+      // Fall back to command info from the plugin manager
       const commands = this.pluginManager.listCommands();
-      
-      // Find the command
       const command = commands.find(cmd => 
         cmd.name === commandName || 
         (cmd.config && cmd.config.aliases && Array.isArray(cmd.config.aliases) && cmd.config.aliases.includes(commandName))
       );
       
-      if (!command) {
-        // If command not found, check if it's a plugin name
-        const plugin = this.pluginManager.getPlugin(commandName);
-        if (plugin && plugin.help) {
-          return await this.showPluginHelp(client, channel, context, plugin);
+      if (command) {
+        // Build the help message
+        let message = `@${context.username} Help for !${command.name}: ${command.config?.description || 'No description'}`;
+        
+        // Add usage
+        if (command.config?.usage) {
+          message += `. Usage: ${command.config.usage}`;
         }
         
-        await client.say(channel, `@${context.username} Command not found: ${commandName}`);
-        return false;
+        // Add aliases
+        if (command.config?.aliases && Array.isArray(command.config.aliases) && command.config.aliases.length > 0) {
+          message += `. Aliases: ${command.config.aliases.map(alias => `!${alias}`).join(', ')}`;
+        }
+        
+        // Add cooldown
+        if (command.config?.cooldown) {
+          message += `. Cooldown: ${command.config.cooldown}s`;
+        }
+        
+        // Add mod only
+        if (command.config?.modOnly) {
+          message += `. Mod only: Yes`;
+        }
+        
+        // Send the message
+        await client.say(channel, message);
+        return true;
       }
       
-      // Build the help message
-      let message = `@${context.username} Help for !${command.name}: ${command.config?.description || 'No description'}`;
-      
-      // Add usage
-      if (command.config?.usage) {
-        message += `. Usage: ${command.config.usage}`;
-      }
-      
-      // Add aliases
-      if (command.config?.aliases && Array.isArray(command.config.aliases) && command.config.aliases.length > 0) {
-        message += `. Aliases: ${command.config.aliases.map(alias => `!${alias}`).join(', ')}`;
-      }
-      
-      // Add cooldown
-      if (command.config?.cooldown) {
-        message += `. Cooldown: ${command.config.cooldown}s`;
-      }
-      
-      // Add mod only
-      if (command.config?.modOnly) {
-        message += `. Mod only: Yes`;
-      }
-      
-      // Send the message
-      await client.say(channel, message);
-      return true;
+      // If we get here, command was not found
+      await client.say(channel, `@${context.username} Command not found: ${commandName}`);
+      return false;
     } catch (error) {
       this.logger.error(`[${this.name}] Error showing command help:`, error);
       await client.say(channel, `@${context.username} Error showing command help.`);

@@ -176,12 +176,13 @@ class PluginManager {
     let initCount = 0;
     let failedPlugins = [];
     
-    // Get enabled plugins from config or use defaults
-    let enabledPlugins = this.configManager ? this.configManager.get('plugins.enabled', []) : [];
+    // Get all plugins by default - don't rely on config
+    // this.logger.info(`[PluginManager] Automatically enabling all plugins without requiring settings.json`);
+    let enabledPlugins = [...this.plugins.keys()];
     
     // Log what plugins we have
     this.logger.info(`[PluginManager] Loaded plugins: ${[...this.plugins.keys()].join(', ')}`);
-    this.logger.info(`[PluginManager] Enabled plugins from config: ${enabledPlugins.join(', ') || 'none'}`);
+    this.logger.info(`[PluginManager] All plugins will be enabled automatically`);
     
     for (const plugin of this.plugins.values()) {
       try {

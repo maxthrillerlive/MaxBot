@@ -13,7 +13,13 @@
     "wsPort": 8080
   },
   "plugins": {
-    "enabled": [],
+    "enabled": [
+      "casino",
+      "dice",
+      "timer",
+      "hello",
+      "libretranslate"
+    ],
     "settings": {
       "translator": {
         "apiKey": "",
@@ -31,7 +37,29 @@
         "translateAll": false,
         "defaultTargetLanguage": "en",
         "apiUrl": "https://libretranslate.com/translate"
+      },
+      "casino": {
+        "enabled": true
+      },
+      "dice": {
+        "enabled": true
+      },
+      "timer": {
+        "enabled": true
+      },
+      "hello": {
+        "enabled": true
       }
     }
+  },
+  "commands": {
+    "prefix": "!",
+    "cooldown": 1000
+  },
+  "features": {
+    "enableLogging": true,
+    "enableChatHistory": true,
+    "maxChatHistory": 100,
+    "maxLogEntries": 1000
   }
 }

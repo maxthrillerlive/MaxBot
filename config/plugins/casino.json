@@ -1,0 +1,86 @@
+{
+  "enabled": true,
+  "minBet": 100,
+  "maxBet": 10000,
+  "startingBalance": 1000,
+  "gameTimeoutMinutes": 5,
+  "games": {
+    "slots": {
+      "enabled": true,
+      "cooldown": 30,
+      "multiplier": 2.5
+    },
+    "roulette": {
+      "enabled": true,
+      "cooldown": 60,
+      "multiplier": 2
+    },
+    "blackjack": {
+      "enabled": true,
+      "cooldown": 120,
+      "multiplier": 2,
+      "blackjackPayout": 2.5
+    }
+  },
+  "commands": {
+    "casino": {
+      "trigger": "casino",
+      "aliases": [],
+      "description": "Play casino games with channel points",
+      "usage": "!casino <game> <bet> OR !casino balance OR !casino games",
+      "cooldown": 0,
+      "modOnly": false,
+      "enabled": true
+    },
+    "hit": {
+      "trigger": "hit",
+      "description": "Hit in blackjack to get another card",
+      "usage": "!hit",
+      "cooldown": 0,
+      "modOnly": false,
+      "enabled": true
+    },
+    "stay": {
+      "trigger": "stay",
+      "aliases": ["stand"],
+      "description": "Stay with your current cards in blackjack",
+      "usage": "!stay",
+      "cooldown": 0,
+      "modOnly": false,
+      "enabled": true
+    }
+  },
+  "help": {
+    "description": "Casino games using channel points",
+    "commands": [
+      {
+        "name": "casino",
+        "description": "Play various casino games with channel points",
+        "usage": "!casino <game> <bet> OR !casino balance OR !casino games",
+        "examples": [
+          "!casino games",
+          "!casino balance",
+          "!casino slots 100",
+          "!casino roulette 200",
+          "!casino blackjack 500"
+        ],
+        "details": "The casino plugin allows users to bet channel points on various games of chance."
+      },
+      {
+        "name": "hit",
+        "description": "Draw another card in blackjack",
+        "usage": "!hit",
+        "examples": ["!hit"],
+        "details": "Use this after starting a blackjack game to draw another card."
+      },
+      {
+        "name": "stay",
+        "description": "Hold your current hand in blackjack",
+        "usage": "!stay",
+        "examples": ["!stay", "!stand"],
+        "details": "Use this after starting a blackjack game to keep your current hand and let the dealer play."
+      }
+    ],
+    "generalHelp": "Casino Games:\n1. !casino games - Show available games\n2. !casino balance - Check your points balance\n3. !casino slots <bet> - Play slots (match 3 symbols to win)\n4. !casino roulette <bet> - Play roulette (win on 0)\n5. !casino blackjack <bet> - Play blackjack (start a game)\n   - !hit - Draw another card\n   - !stay or !stand - Hold your hand and let dealer play"
+  }
+} 
